@@ -1,0 +1,382 @@
+{
+  "id": "mamba",
+  "version": "original",
+  "title": "Mamba: Linear-Time Sequence Modeling with Selective State Spaces",
+  "subtitle": "让 SSM 学会『该记的记、该忘的忘』——线性时间的序列建模第一次真正追上 Transformer",
+  "authors": "Albert Gu, Tri Dao",
+  "affiliation": "Carnegie Mellon University · Princeton University",
+  "source": "https://arxiv.org/abs/2312.00752",
+  "doi": "10.48550/arXiv.2312.00752",
+  "date": "2026-08-31",
+  "tags": [
+    "State Space Models",
+    "Sequence Modeling",
+    "Linear Attention",
+    "Long Context",
+    "Efficient Architecture"
+  ],
+  "summary": "把状态空间模型里的 Δ、B、C 这些参数改成『随当前输入变化』的函数，让模型能按内容选择性传播或遗忘信息；再配上一个硬件感知的并行 scan 算法绕开去掉卷积带来的计算瓶颈——于是 Mamba 第一次做到线性时间、常时推理，并在语言/音频/基因组上追平甚至超过同级 Transformer。",
+  "blocks": [
+    {
+      "type": "section",
+      "num": "01",
+      "title": "问题"
+    },
+    {
+      "type": "p",
+      "text": "现在几乎所有大模型的骨干都是 **Transformer**，核心是自注意力。注意力的强在于它能把上下文窗口里的信息**密集地路由**，从而建模复杂数据；但它的弱点也由此而来：**窗口之外的任何信息都建模不到，且复杂度随窗口长度二次方增长**。你会发现推理时它要显式存整段上下文（KV cache），于是推理是线性时间、训练是二次时间——这正是它处理长序列时又慢又贵的原因。",
+      "evidence": "Paper Abstract · Section 1 Introduction · Section 3.1 Motivation"
+    },
+    {
+      "type": "p",
+      "text": "于是出现了一大批『次二次时间』（subquadratic）的替代方案：线性注意力、门控卷积/递归模型、结构化状态空间模型（S4）。它们都能高效处理长序列，甚至在 Long Range Arena 这类连续信号基准上称霸；**但对语言这种『离散、信息密集』的数据，它们始终达不到注意力的水平**——论文要补的正是这个缺口。",
+      "evidence": "Paper Abstract · Section 1 Introduction · Section 2"
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "title": "为什么值得往下读",
+      "text": "这篇还没读就在说『我补上了替代注意力最后一块短板』，而且它不是只刷了某个模态——语言、音频、基因组三管齐下，还附送了一套能跑百万级序列的工程实现。它真正想回答的问题是：**能不能扔掉注意力，照样做出兼顾『质量』与『长序列效率』的通用骨干？** 答案是第一次接近『能』。"
+    },
+    {
+      "type": "section",
+      "num": "02",
+      "title": "翻译"
+    },
+    {
+      "type": "p",
+      "text": "先用大白话理解论文的核心命题：**序列建模的根本难题，是把『越来越长的上下文』压缩进『一个有限大小的状态』里**。注意力是『不压缩』——它把所有上下文都留着，所以准但慢；递归模型（RNN / SSM）是『压缩』——它只有一个小状态，所以快，但准不准，取决于这个状态压缩得好不好。"
+    },
+    {
+      "type": "concept",
+      "title": "压缩（Context → State）",
+      "body": "想象你要一边听一段很长的报告、一边写摘要。注意力就像你从头到尾把每句话都记下来、还随时能翻回去看——当然准，但笔记本会越记越厚（KV cache）。RRM/SSM 就像你只带一个小小的便签本——省事，但能不能把报告的核心都挤进便签本，是成败关键。",
+      "why": "论文把整个模型的设计权衡，都归结为『这个状态压缩得好不好』。效率高的模型状态必须小，效果好的模型状态又必须装下所有必要信息——两者的平衡点就是『选择性』。"
+    },
+    {
+      "type": "concept",
+      "title": "选择性（Selectivity）",
+      "body": "Mamba 的关键词就一个：**根据当前内容，决定『哪些信息该记住、哪些该丢掉』**。它不再是一套固定规则在所有时刻照章办事，而是让规则本身随输入变化——这就像是那个写摘要的人，遇到无关紧要的话就跳过，遇到关键的词就停下来仔细记。",
+      "why": "旧的方法（时间不变 / LTI）是『一视同仁』：无论当前输入是什么，它都用同一套系数来处理。这导致它对『语义里的重点』不敏感——而语言和基因组的重点恰恰是内容，不是时序。"
+    },
+    {
+      "type": "insight",
+      "text": "最反直觉的一点：**旧的 SSM 之所以算得快，恰恰是它变笨的原因**。为了让模型能当卷积并行训练、能高效计算，旧做法必须保持『时间不变』（LTI）——可一旦参数固定，它就没了『看内容下菜』的能力。Mamba 的代价是把这条捷径拆掉，然后用一个全新的硬件感知 scan 把性能补回来。"
+    },
+    {
+      "type": "p",
+      "text": "那直观上『选择性』到底解决了哪些实际问题？论文从机制上拆成了三件事：",
+      "evidence": "Paper Section 3.5.2 Interpretation of Selection Mechanisms"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**可变间距**：重要内容之间夹着一堆无关噪音（比如语料里的『嗯』『那个』），选择性能让模型把这些噪音过滤掉，只记住真正有用的 token。",
+        "**过滤上下文**：很多模型上下文越长反而越差，因为它们无法忽略无关历史。选择性模型可以随时『清空』多余的历史，所以原则上上下文越长效果越好。",
+        "**边界重置**：把多段独立序列拼接在一起训练时，注意力靠 mask 隔离，而 LTI 模型会把信息互相串味。选择性模型能在边界处重置状态，天然隔离。"
+      ]
+    },
+    {
+      "type": "section",
+      "num": "03",
+      "title": "架构 / 方法"
+    },
+    {
+      "type": "sub",
+      "title": "从 SSM 到选择性 SSM（S6）"
+    },
+    {
+      "type": "p",
+      "text": "先讲清楚 SSM 的四要素。它由四个参数 $(\\Delta, \\bm{A}, \\bm{B}, \\bm{C})$ 定义一个序列到序列的变换：连续形式是 $h'(t) = \\bm{A}h(t)+\\bm{B}x(t)$、$y(t)=\\bm{C}h(t)$；离散化为递归 $h_t = \\overline{\\bm{A}}h_{t-1}+\\overline{\\bm{B}}x_t$、$y_t=\\bm{C}h_t$。因为 $\\overline{\\bm{A}},\\overline{\\bm{B}}$ 由固定公式算得，这些参数一直不变，所以叫『时间不变』（LTI）。它既能当递归（推理省时），也能展开成全局卷积（训练可并行）。",
+      "evidence": "Paper Section 2 State Space Models"
+    },
+    {
+      "type": "formula",
+      "title": "离散化（ZOH，零阶保持）",
+      "tex": "$$\\overline{\\bm{A}} = \\exp(\\Delta\\bm{A}), \\qquad \\overline{\\bm{B}} = (\\Delta\\bm{A})^{-1}(\\exp(\\Delta\\bm{A})-\\bm{I})\\cdot\\Delta\\bm{B}$$",
+      "note": "把连续参数 $(\\Delta,\\bm{A},\\bm{B})$ 转成离散参数 $(\\overline{\\bm{A}},\\overline{\\bm{B}})$。$\\Delta$ 可理解为采样步长，也是 Mamba 做选择的关键旋钮（见下）。",
+      "evidence": "Equation 4 · Section 2 Discretization"
+    },
+    {
+      "type": "p",
+      "text": "Mamba 的做法极其简单：**把 $\\Delta, \\bm{B}, \\bm{C}$ 都改成输入的函数**。具体地，$s_{\\bm{B}}(x)=\\mathrm{Linear}_N(x)$，$s_{\\bm{C}}(x)=\\mathrm{Linear}_N(x)$，$s_{\\Delta}(x)=\\mathrm{Broadcast}_D(\\mathrm{Linear}_1(x))$，激活 $\\tau_{\\Delta}=\\mathsf{softplus}$。结果是这些参数从此多了一根『长度 $L$』维度——模型从时间不变变成了**时变**。代价是它再也不能用高效卷积了。"
+    },
+    {
+      "type": "formula",
+      "title": "选择机制的核心变换（把参数喂给输入）",
+      "tex": "$$\\bm{B} = s_{\\bm{B}}(x),\\quad \\bm{C} = s_{\\bm{C}}(x),\\quad \\Delta = \\tau_{\\Delta}(\\mathsf{Parameter}+s_{\\Delta}(x))$$",
+      "note": "与 Algorithm 2（SSM + Selection / S6）对应。关键格言：$\\Delta$ 是选择的主力，因为它通过 $\\overline{\\bm{A}}=\\exp(\\Delta\\bm{A})$ 间接控制整条递归的『记忆/遗忘』。",
+      "evidence": "Algorithm 2 · Section 3.2"
+    },
+    {
+      "type": "concept",
+      "title": "Δ 到底在干什么（与 RNN 门的联系）",
+      "body": "论文的定理 1 说：当 $N=1,\\bm{A}=-1,\\bm{B}=1$ 时，选择性 SSM 递归会退化成一个标准门控 RNN：$g_t=\\sigma(\\mathrm{Linear}(x_t))$，$h_t=(1-g_t)h_{t-1}+g_tx_t$。机械上，**大的 $\\Delta$ 会重置状态、聚焦当前输入；小的 $\\Delta$ 会保持状态、忽略当前输入**——也就是说 $\\Delta$ 就是 RNN 里那个『门』的推广。",
+      "why": "这说明选择性并非凭空造的新东西，而是把藏在离散化公式里的『门控』挖出来、并让它对每个 token 各自生效，从而获得按内容记忆/遗忘的能力。",
+      "evidence": "Theorem 1 · Section 3.5.1 · Equation 5"
+    },
+    {
+      "type": "sub",
+      "title": "硬件感知的并行 scan：把效率补回来"
+    },
+    {
+      "type": "p",
+      "text": "一旦不能用卷积，递归计算 $h_t = \\overline{\\bm{A}}h_{t-1}+\\overline{\\bm{B}}x_t$ 表面上有两个大坑：它是**串行**的、且要物化一个巨大的隐状态。Mamba 用三招化解，被它称为**选择性扫描（selective scan）**：",
+      "evidence": "Paper Section 3.3.2 Overview of Selective Scan"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**核融合（kernel fusion）**：把参数 $\\Delta,\\bm{A},\\bm{B},\\bm{C}$ 直接留在 GPU 的 SRAM 里，在片内完成离散化和递归，只把小的输入/输出写回 HBM，避免慢速内存反复读写。",
+        "**并行扫描（parallel scan）**：递归虽串行，但这本质是个可以『分而治之』的前缀运算，可以用工作高效（work-efficient）的并行扫描算法在 GPU 上并行。",
+        "**重算（recomputation）**：反向传播需要的中间状态不存，而是反向时重算，从而把显存压回与 FlashAttention 同级的水平。"
+      ]
+    },
+    {
+      "type": "architecture",
+      "text": "selective scan 流程（示意）\n\nHBM: 加载 (Δ, A, B, C)\n  ↓\nSRAM: 离散化 → 递归 → 输出小张量\n  ↓\nHBM: 只回写 (B, L, D) 大小的输出\n\n反向: 中间状态不存 → 重算",
+      "evidence": "Paper Section 3.3.2 · Appendix D"
+    },
+    {
+      "type": "sub",
+      "title": "一个简化的架构：Mamba Block"
+    },
+    {
+      "type": "p",
+      "text": "之前最主流的 SSM 架构（H3）本质是把『线性注意力块的变形』和一个『MLP 块』交替堆叠。Mamba 把它们**合并成一个同质块**，没有独立注意力、也没有独立 MLP 块。它把模型维数 $D$ 按一个扩展因子 $E=2$ 放大，大部分参数花在线性投影上，内部 SSM 参数占比很小；两块 Mamba 就匹配一个 Transformer 的 MHA+MLP 参数量。",
+      "evidence": "Paper Section 3.4 A Simplified SSM Architecture · Figure 3"
+    },
+    {
+      "type": "p",
+      "text": "还补充了几个细节：默认用**实数**而非复数状态（作者假设复数对连续信号如音频有帮助、对离散信号如文本/DNA 反而未必）；初始化用 S4D-Real（实数）/ S4D-Lin（复数）；$\\Delta$ 初始化为 $\\tau_{\\Delta}^{-1}(\\mathsf{Uniform}([0.001,0.1]))$。论文把选择性的 SSM 简称作 **S6 模型**（S4 + selection + scan）。",
+      "evidence": "Paper Section 3.6 Additional Model Details · Remark 3.1"
+    },
+    {
+      "type": "section",
+      "num": "04",
+      "title": "关键结果"
+    },
+    {
+      "type": "section",
+      "title": "语言建模：第一次追平 Transformer 质量"
+    },
+    {
+      "type": "p",
+      "text": "在 Pile 数据集、Chinchilla 协议下，从约 125M 到 1.3B 参数做 scaling law：Mamba 是**第一个在质量上追平『最强 Transformer 配方（Transformer++）』的无注意力模型**，且序列越长优势越明显。下游零样本任务（Table 1）里，每个尺寸 Mamba 都是最强者，且普遍能匹配两倍于自己大小的基线。",
+      "evidence": "Paper Section 4.2.1 Scaling Laws · Figure 6"
+    },
+    {
+      "type": "table",
+      "title": "零样本评测平均分（Table 1 节选，avg 越高越好）",
+      "headers": [
+        "Model",
+        "Pile ppl ↓",
+        "Average ↑"
+      ],
+      "rows": [
+        [
+          "Pythia-160M",
+          29.64,
+          40.6
+        ],
+        [
+          "Mamba-130M",
+          10.56,
+          44.7
+        ],
+        [
+          "Pythia-410M",
+          9.95,
+          48.2
+        ],
+        [
+          "Mamba-370M",
+          8.28,
+          50.0
+        ],
+        [
+          "Pythia-1B",
+          7.82,
+          51.9
+        ],
+        [
+          "Mamba-790M",
+          7.33,
+          57.1
+        ]
+      ],
+      "highlights": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          5,
+          2
+        ]
+      ],
+      "caption": "同一 tokenizer / 数据集 / 训练 300B 下对比 Pythia。Mamba-130M 的平均分就压过 Pythia-160M，Mamba-790M 则逼近两倍大的 Pythia-1B。",
+      "evidence": "Table 1 · Section 4.2.2 Downstream Evaluations"
+    },
+    {
+      "type": "insight",
+      "text": "论文最被津津乐道的一句：**Mamba-3B 的质量能匹配两倍尺寸（6B）的 Transformer**。同尺寸比 Pythia-3B 平均（常识推理）高出约 4 分，甚至超过 Pythia-7B。这是它打出『线性时间第一次做到 Transformer 质量』这一结论的底气。",
+      "evidence": "Paper Abstract · Section 1 Introduction"
+    },
+    {
+      "type": "section",
+      "title": "长上下文：基因组与音频"
+    },
+    {
+      "type": "table",
+      "title": "DNA 长上下文：上下文越长，性能如何（图 7 右）",
+      "headers": [
+        "模型",
+        "上下文变长时的趋势"
+      ],
+      "rows": [
+        [
+          "Mamba",
+          "困惑度持续下降，最长到 1M"
+        ],
+        [
+          "HyenaDNA",
+          "困惑度反而变差"
+        ]
+      ],
+      "highlights": [
+        [
+          0,
+          1
+        ]
+      ],
+      "caption": "固定模型大小（约 1.3M 参数），Mamba 能用上越来越长的上下文；HyenaDNA 则越用越差——因为 LTI 模型无法选择性忽略噪音。",
+      "evidence": "Paper Section 4.3.2 Scaling: Context Length · Figure 7 Right"
+    },
+    {
+      "type": "insight",
+      "text": "音频方面：在 SC09 语音生成上，一个只有 6.1M 参数的小 Mamba，FID 从 SaShiMi 的 1.99 直接砍到 **0.94**（24.3M 版更是 0.67），把此前最先进的 GAN/扩散模型的 FID 几乎减半。同时 Mamba 在音频上配合 U-Net（把 S4+MLP 块换成 Mamba 块）持续超越 SaShiMi，且上下文越长差距越大。",
+      "evidence": "Paper Section 4.4.2 Autoregressive Speech Generation · Figure 10"
+    },
+    {
+      "type": "section",
+      "title": "速度与消融"
+    },
+    {
+      "type": "table",
+      "title": "效率与关键消融",
+      "headers": [
+        "维度",
+        "结果"
+      ],
+      "rows": [
+        [
+          "推理吞吐",
+          "比同级 Transformer 高 4–5 倍"
+        ],
+        [
+          "训练 FLOPs",
+          "随序列长度线性增长"
+        ],
+        [
+          "scan 速度",
+          "比 PyTorch 标准实现快 20–40 倍"
+        ],
+        [
+          "Δ 是否选择性",
+          "单独选 Δ：ppl 9.81；三者全选：8.71"
+        ]
+      ],
+      "highlights": [
+        [
+          0,
+          1
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "caption": "效率上 Mamba 因无 KV cache 能撑更大 batch；消融上 Δ 是最关键的选择性参数，but 三者齐上协同最好。",
+      "evidence": "Paper Section 4.5 · Section 4.6 · Figure 13 · Figure 14"
+    },
+    {
+      "type": "insight",
+      "text": "一个真正让人确认动机的消融：把 SSM 的状态维数 $N$ 从小放大、同时保持 $\\bm{B},\\bm{C}$ 也选择性 → 只增加约 1% 参数，困惑度却大幅改善超过 1.0。可一旦固定 $\\bm{B},\\bm{C}$（不选择性），加大 $N$ 几乎没用。这印证了论文的核心主张：**选择性真正激活了 SSM 的『大状态』优势。**",
+      "evidence": "Paper Section 4.6.2 · Figure 16"
+    },
+    {
+      "type": "section",
+      "num": "05",
+      "title": "评价"
+    },
+    {
+      "type": "verdict",
+      "text": "这是一份**工程与洞见兼备**的高质量工作。它没有发明全新的数学，而是把『让参数随输入变化』这一简单念头，配上『硬件感知的并行扫描』，硬是把一个此前只能讨好连续信号的模型类，第一次送进了语言建模的牌桌。行文克制、证据链完整、代码开源，是 2023 年序列建模领域最具影响力的工作之一。明显局限在**规模**：验证止步于 1B 上下，远未触及 7B/70B 的量级，『能否在大规模下依旧吊打 Transformer』仍是问号。"
+    },
+    {
+      "type": "proscons",
+      "pros": [
+        "抓住真正的痛点：不是再做一个次二次方案，而是点破 LTI 模型的『不擅长内容推理』这一硬伤。",
+        "动机与实验互相咬合：选择性复制、induction heads 两个合成任务把失败模式演得明明白白，再佐以真实任务。",
+        "通用骨干：语言 / 音频 / 基因组三模态同时达标，展示作为通用 sequence backbone 的潜力。",
+        "工程扎实：硬件感知 scan 让理论线性复杂度落到真实 GPU（3× 快于旧方法），并开源代码与权重。"
+      ],
+      "cons": [
+        "规模未验证：最大模型约 3B，远低于当代主流 LLM（7B、70B），『大模型下依旧更强』存疑。",
+        "『无免费午餐』：选择性补上了离散模态的短板，但也可能损害它在连续数据（作者自己承认音频上需切回复数）的表现。",
+        "Transformer 生态的『下游 affordance』（RLHF、instruction tuning、量化、in-context learning 展示等）几乎没有覆盖。",
+        "关于与门控/线性注意力的理论关系主要在附注，正文缺乏深度的理论刻画。"
+      ]
+    },
+    {
+      "type": "section",
+      "num": "06",
+      "title": "博导审稿"
+    },
+    {
+      "type": "review",
+      "summary": "作为在这方向带研究生二十年的博导，我会先把这篇摊在桌上说：『这个组是真懂 SSM 的。』它没有堆砌花哨模块，而是回到根本——序列模型到底难在哪——然后用一个既干净、又能落地的机制去回应。这种『老问题，新剪刀』的功夫，比追热点可贵得多。",
+      "dimensions": [
+        {
+          "name": "选题眼光",
+          "grade": "strong",
+          "note": "瞄准了次二次架构『上不了语言建模』这一悬而未决的痛点，并把原因归结到 LTI 上——眼光准、切得狠。"
+        },
+        {
+          "name": "方法成熟度",
+          "grade": "strong",
+          "note": "选择机制简洁（改三个参数为输入函数），又为此专门设计硬件感知并行扫描，把『理论上可行』真正落成『跑得动』，成熟度在同级工作中少见。"
+        },
+        {
+          "name": "实验诚意",
+          "grade": "mixed",
+          "note": "多模态、能追平 Transformer++、消融也做了，很有诚意。但规模止步于 1B 上下，缺 7B+ 的压力测试，这是评委一定会追问的点。"
+        },
+        {
+          "name": "写作功力",
+          "grade": "strong",
+          "note": "叙事非常克制：问题—动机—机制—硬件—实验层层递进，把『压缩』和『选择性』两个概念讲得普通读者也能懂。"
+        },
+        {
+          "name": "影响力预判",
+          "grade": "strong",
+          "note": "几乎可以断言是布局之作：它直接催生了状态空间模型这一支的『选择性』范式，Gated DeltaNet、后续 SSD/Mamba-2，乃至一批混合架构都能追溯到这里。"
+        }
+      ],
+      "overall": "Strong Accept",
+      "overallSub": "推荐精读，值得作为序列建模方向的必读文献跟进。"
+    },
+    {
+      "type": "takeaway",
+      "text": "Mamba 用『让状态空间模型的参数随输入变化』这一招获得按内容记忆/遗忘的能力，配上一个硬件感知的并行扫描把效率补回，从而第一次让线性时间的序列建模在语言、音频和基因组上追平甚至超过同级的 Transformer。"
+    }
+  ],
+  "theme": "ink"
+}

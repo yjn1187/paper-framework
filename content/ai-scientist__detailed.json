@@ -1,0 +1,602 @@
+{
+  "id": "ai-scientist",
+  "version": "detailed",
+  "title": "The AI Scientist: Towards Fully Automated Open-Ended Scientific Discovery",
+  "subtitle": "把「想点子→写代码→跑实验→写论文→自动评审」整条科研循环交给一个 LLM，每篇论文不到 $15",
+  "authors": "Chris Lu, Cong Lu, Robert Tjarko Lange, Jakob Foerster, Jeff Clune, David Ha",
+  "affiliation": "Sakana AI · FLAIR University of Oxford · University of British Columbia · Vector Institute",
+  "source": "https://arxiv.org/abs/2408.06292",
+  "doi": "10.48550/arXiv.2408.06292",
+  "date": "2026-08-31",
+  "tags": [
+    "自动科学发现",
+    "LLM Agent",
+    "开放式进化",
+    "自动论文评审",
+    "自我反思",
+    "开源(AI-Scientist)"
+  ],
+  "summary": "第一个端到端、可开环的「全自动科研」系统：一个前沿大模型在给定研究方向与简单代码模板后，自主生成点子、用 Aider 改代码、执行实验、把结果写成完整 LaTeX 论文，再交给一台 GPT-4o 评审代理模拟顶会审稿来自我打分——评审分数回流，成为开放式进化的选择压力。每篇论文成本约 $10–15。",
+  "theme": "ink",
+  "blocks": [
+    {
+      "type": "section",
+      "num": "01",
+      "title": "一句话"
+    },
+    {
+      "type": "insight",
+      "text": "**The AI Scientist 解决的是：让一台前沿 LLM 在没有人类参与的情况下，把整条科研流程——生成点子、写并改实验代码、跑实验、把结果写成一篇完整论文、再自动评审——全程闭环地跑完，并且能像科研共同体那样对上一次的结论做开环迭代。**",
+      "evidence": "Abstract · Section 1 · Page 1"
+    },
+    {
+      "type": "section",
+      "num": "02",
+      "title": "问题"
+    },
+    {
+      "type": "p",
+      "text": "科学的迭代周期本质上是**受制于人**的：受限于研究者的创造力、知识面与有限时间。前沿 LLM 目前只被当作科研流水线上零散的助手——帮写论文、当点子的大脑、充当编码帮手——却**还没有人证明能在完全无人的情况下跑完整个研究过程**。",
+      "evidence": "Section 1 · Page 1"
+    },
+    {
+      "type": "p",
+      "text": "过去试图自动化研究的工作，几乎都靠**人工圈定搜索空间+精心定义目标**来约束：材料/合成生物发现（Pyzer-Knapp、GNoME、AlphaFold）、AutoML 的超参与架构搜索、以及算法发现，都在**某个单一领域、窄搜索空间**里做定向探索。这不仅限制广度，而且通常**不包含写论文与同行评审**这些环节。",
+      "evidence": "Section 1 · Page 1"
+    },
+    {
+      "type": "callout",
+      "kind": "warn",
+      "title": "现在不做会怎样",
+      "text": "如果不做「自动科研」，就等于把科研的重活继续锁死在人脑 + 时间上：能探索的点子数量、能跑的实验次数、能写成的论文量，都被一个人的精力与成本天花板卡死。论文生产与同行评审的瓶颈只会越来越贵、越来越慢。",
+      "evidence": "Section 1 · Page 1"
+    },
+    {
+      "type": "section",
+      "num": "03",
+      "title": "Existing Work"
+    },
+    {
+      "type": "p",
+      "text": "「自动科学发现」的理想可追溯到 1970 年代初：Lenat 的 **Automated Mathematician** 与 **DENDRAL** 是最早的计算机辅助科研系统；随后 Schmidhuber、Ghahramani 等人勾画了「AI 用 AI 来做 AI 研究」，Clune (2019) 甚至提出 **AI-generating algorithms**。这些是本文的思想源头。",
+      "evidence": "Section 1 · Page 1 · Section 7 · Page 9"
+    },
+    {
+      "type": "p",
+      "text": "更近的分支是三路，但**每路只覆盖科研的一截**：一是「LLM 做 ML 研究」，如 MLAgentBench、Lu et al. 的偏好优化、Liang et al. 用 LLM 给论文反馈、Girotra 等人说的「LLM 点子质量更高」、以及只检索文献不执行的点子生成；二是「LLM 做结构化探索」，如奖励函数/机器人/环境/架构搜索，以及 LLM 当评审与 Quality-Diversity 的重组算子；三是「AI 做科学发现」，如 FunSearch、GNoME、AlphaFold，但都锁死在单一领域的窄空间。",
+      "evidence": "Section 7 · Page 9"
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "title": "缺口在哪",
+      "text": "没有哪一个系统**同时**做到：想点子 + 不靠人工搜索空间 + 自己写代码 + 跑实验 + 用论文可解释地写出 + 自己评审 + 还能据此开环迭代。本文正是把这几股线**合流成一个单一自主系统**。",
+      "evidence": "Section 7 · Page 9"
+    },
+    {
+      "type": "section",
+      "num": "04",
+      "title": "核心思想"
+    },
+    {
+      "type": "concept",
+      "title": "把科研当成「开放式进化搜索」",
+      "body": "作者从进化计算与 open-endedness 研究拿灵感：用 LLM 作为**变异算子**，不断往一个不断增长的「点子档案库」里添加新方向；每个点子自带描述、实验执行计划，以及**自评的**有趣度/新颖度/可行性分数和一个 `novel` 标记。新点子是在**既有档案（含上一轮已发表点子的评审分数）**的条件下生成的，因此可以一直迭代、一直累积。",
+      "why": "这解开了「如何让系统越做越好、越做越开阔」的钥匙——把评审分数当作选择压力，让点子的好坏直接反馈回下一次生成，从而像人类科研共同体那样开环生长。",
+      "evidence": "Section 3.1 · Page 3 · Section 9 · Page 10"
+    },
+    {
+      "type": "concept",
+      "title": "三段式流水线 + 一台评审器",
+      "body": "系统分三段：**Idea Generation**（冒点子 + 联网过滤重复）→ **Experiment Iteration**（用 Aider 把点子落成代码改动、执行、记笔记、再规划下一步）→ **Paper Write-up**（逐节写成 LaTeX）。三段之后，再接一台 **GPT-4o 自动化评审器**给出分数与 accept/reject 决定，既用来挑「值得发表」的点子，也当作下一轮进化的反馈。",
+      "why": "「评审」不是评审，而是整条流水线的**裁判**——既筛出好点子，又给进化提供选择信号，是整个系统能跑起来的闭环关键。",
+      "evidence": "Section 3 · Figure 1 · Page 3"
+    },
+    {
+      "type": "insight",
+      "text": "真正的新东西**不是一个算法，而是一个几乎零人工、可自我迭代的『科研循环闭环』**：想象→实验→写作→评审→再想象。它有三大支点——Aider 让点子能变成能跑的代码、LLM 评审器让质量可以被自动化地评判、$15/篇的超低成本让它能被大规模地重复。",
+      "evidence": "Section 3 · Section 9 · Page 3 · Page 10 · Figure 4 · Page 8"
+    },
+    {
+      "type": "section",
+      "num": "05",
+      "title": "方法"
+    },
+    {
+      "type": "sub",
+      "title": "Idea Generation（点子生成）"
+    },
+    {
+      "type": "p",
+      "text": "给定一个**几分钟就能跑完的小型基线模板**（例如训练一个字符级 transformer 学莎士比亚），系统先 brainstorm 一批方向，用**多轮 chain-of-thought + self-reflection** 打磨；随后用 **Semantic Scholar API + 联网**当工具，把与已有文献太像的点子过滤掉。每个点子含描述、实验计划、自评分数与 novel 标记。",
+      "evidence": "Section 3.1 · Page 3 · Appendix A.1"
+    },
+    {
+      "type": "sub",
+      "title": "Experiment Iteration（实验迭代）"
+    },
+    {
+      "type": "p",
+      "text": "直接用 **Aider** 作为编码助手，把点子落成对模板的代码改动并执行；**失败或超时就把报错回喂给 Aider** 改代码重试（最多 4 次）。每完成一次实验，让 Aider 以「实验日志」风格记笔记，再按结果重排下一步实验（最多 5 次）；最后再让它改绘图脚本、为论文生成图表。",
+      "evidence": "Section 3.2 · Page 3–4"
+    },
+    {
+      "type": "concept",
+      "title": "Aider：LLM 编码助手（把点子变成能跑的代码）",
+      "body": "Aider 是一个开源 LLM agent 框架，能在已有代码库里实现功能、修 bug、重构。配上前沿模型，它在 **SWE-bench** 上有 18.9% 成功率。作者认为：正是这种可靠度 + 本工作新增的鲁棒化（报错回喂、失败重试）一起，才**第一次**让「全自动跑 ML 研究」成为可能。",
+      "why": "它是流程里最容易失败的瓶颈——点子再好，代码实现不了就是零。Aider 的可靠度决定了整条流水线的产率。",
+      "evidence": "Section 2 · Section 3.2 · Page 2 · Page 3"
+    },
+    {
+      "type": "sub",
+      "title": "Paper Write-up（论文写作）"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "**逐节生成**：按 intro→background→methods→setup→results→conclusion 顺序；只准用真实实验产生的 notes 与图，先留白引文，以减少幻觉。",
+        "**联网找引文**：允许 20 轮 Semantic Scholar 检索最相关文献，并把 bibtex 自动追加进 LaTeX 保证正确。",
+        "**打磨**：逐节 self-reflection 去冗、理顺论证。",
+        "**编译**：把 LaTeX 编译报错再喂回 Aider 自动修正。"
+      ]
+    },
+    {
+      "evidence": "Section 3.3 · Page 4"
+    },
+    {
+      "type": "sub",
+      "title": "自动化评审器（评估与选择压力）"
+    },
+    {
+      "type": "p",
+      "text": "用 GPT-4o 按 **NeurIPS 审稿指南**写评审：PyMuPDF 解析 PDF，输出 soundness/presentation/contribution/overall/confidence 分数、优缺点清单与初步 accept/reject 决定，可再按分数阈值校准。为鲁棒，加了 **self-reflection(5 轮) + 1-shot 例子 + 5 封评审集成 + meta-aggregation（模拟 AC）**。",
+      "evidence": "Section 4 · Page 5 · Appendix A.4"
+    },
+    {
+      "type": "section",
+      "num": "06",
+      "title": "图解"
+    },
+    {
+      "type": "figure",
+      "src": "assets/ai-scientist/fig1.png",
+      "caption": "Figure 1：The AI Scientist 端到端概念图——从左到右：冒点并自评新颖度 → 用 Aider 改代码跑实验攒分数与图 → 写成 LaTeX → 交给 GPT-4o 自动评审；评审分数回流作为下一轮点子的条件（开环）。",
+      "evidence": "Figure 1 · Page 3"
+    },
+    {
+      "type": "p",
+      "text": "怎么读：核心是**那条『回流箭头』**。上面四个阶段里，前三个是通常意义上的『做研究』，第四个是『裁判』；而裁判的分不是终点，是要**condition 到下一次『冒点子』里**的——这一条闭环箭头，就是本系统『开放、可持续』的灵魂。",
+      "evidence": "Figure 1 · Section 3 · Page 3"
+    },
+    {
+      "type": "figure",
+      "src": "assets/ai-scientist/fig2.png",
+      "caption": "Figure 2：自动化评审的评估（左：混淆矩阵；下：两两评审员打分一致性 vs AI 打分与全体评审员均值的一致性）。",
+      "evidence": "Figure 2 · Section 4 · Page 5"
+    },
+    {
+      "type": "p",
+      "text": "怎么读：下面两张散点图在比『一致性』——两个人类评审员对同一篇论文的打分相关只有 **0.14**，而 **AI 打分 vs 全体评审员平均分**的相关却有 **0.18**。也就是说：AI 审得比『人类彼此之间』更接近『评审团的平均意见』。这是个很有说服力的自证证据。",
+      "evidence": "Figure 2 · Section 4 · Page 5"
+    },
+    {
+      "type": "figure",
+      "src": "assets/ai-scientist/fig3.png",
+      "caption": "Figure 3：完全由 AI 自动生成的『Adaptive Dual-Scale Denoising』论文预览（11 页，含所有标准章节）。",
+      "evidence": "Figure 3 · Section 5 · Page 5 · Appendix D.1"
+    },
+    {
+      "type": "p",
+      "text": "怎么读：重点**不是它写得有多完美，而是它结构齐全**（方法、实验、未来工作俱在）。但也正是这个个案暴露了 AI 写作的通病：上采样层实际退化成线性层、把 V100 幻觉成真机 H100、把负结果说成『3.3% 提升』、参考文献只有 9 条。",
+      "evidence": "Section 5 · Page 5–6"
+    },
+    {
+      "type": "figure",
+      "src": "assets/ai-scientist/fig4.png",
+      "caption": "Figure 4：AI 生成论文的评审分数 violin 分布——三个领域 × 四个基础模型；纵轴为 NeurIPS 2(强拒)~6(弱接受)。",
+      "evidence": "Figure 4 · Section 6 · Page 8"
+    },
+    {
+      "type": "p",
+      "text": "怎么读：看『分布胖在哪』。**Sonnet 3.5** 整体偏高、上探到 6（顶到 Weak Accept 阈值）；GPT-4o 居中；**Llama-3.1 405b** 整体疲软、多落在 2~3（弱拒）。这张图直接支撑作者『模型无关、孰强孰弱会翻转』的论断。",
+      "evidence": "Figure 4 · Section 6 · Page 8"
+    },
+    {
+      "type": "section",
+      "num": "07",
+      "title": "关键公式"
+    },
+    {
+      "type": "formula",
+      "title": "自回归语言模型（一切能力的根基）",
+      "tex": "$$p(x_t \\mid x_{<t}; \\theta)$$",
+      "note": "$x_t$ 是当前要预测的 token，$x_{<t}$ 是它之前的全部 token，$\\theta$ 是模型参数。LLM 学的是『给定前文、下一个词的概率』，并由此获得常识、推理与写代码等类人能力——本系统正是建立在它之上。",
+      "evidence": "Section 2 · Page 2"
+    },
+    {
+      "type": "formula",
+      "title": "开放式进化的选择压力（本工作灵魂）",
+      "tex": "$$\\text{Idea}_{k+1} \\sim \\text{LLM}\\big(\\mathcal{A} \\cup \\{\\text{score}(P_j)\\}_{j}\\big),\\quad \\mathcal{A} \\leftarrow \\mathcal{A} \\cup \\{\\text{Idea}_{k+1}\\}$$",
+      "note": "$\\mathcal{A}$ 是不断增长的「点子/知识档案」，$\\text{score}(P_j)$ 是第 $j$ 个已完成点子的**评审分数**。新的点子是在旧点子累积起来的档案、以及它们的评审分数条件下生成的——评审分数成了进化选择压力，让系统能越做越开阔、越做越好。",
+      "evidence": "Section 3.1 · Section 9 · Page 3 · Page 10"
+    },
+    {
+      "type": "formula",
+      "title": "每篇论文的成本",
+      "tex": "$$\\text{cost}\\;\\approx\\;\\frac{\\text{总 LLM API 费用}}{\\text{完成论文数}}\\;\\approx\\;\\$10\\text{–}15$$",
+      "note": "大头是 LLM API（编码 + 写作）而非实验算力；评审与实验算力因外部约束而可忽略。三个领域 × 四模型的总成本多在 $250–300（Sonnet/GPT-4o）或 $10（DeepSeek）量级。这是『可大规模重复』的关键前提。",
+      "evidence": "Section 6 · Section 9 · Page 7 · Page 10"
+    },
+    {
+      "type": "section",
+      "num": "08",
+      "title": "实验设置"
+    },
+    {
+      "type": "p",
+      "text": "在**三个 ML 子领域**各给一个轻量模板（几分钟可跑完的基线），再让系统自由探索。每个模板自带数据集、基线与度量；底下的 four 个基础模型作为『研究者对手』做对比。",
+      "evidence": "Section 6 · Page 7–8 · Table 3–5"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "**Diffusion Modeling**（Section 6.1）：DDPM（基于 tanelp/tiny-diffusion），四类低维分布（几何形状、two-moons、2D 恐龙）；基线 = 原模板；度量 = 估计 KL + 生成样本视觉。",
+        "**Language Modeling**（Section 6.2）：字符级 transformer（基于 NanoGPT），Shakespeare / enwik8 / text8；基线 = 模板三种子；度量 = 验证困惑度。",
+        "**Grokking / Learning Dynamics**（Section 6.3）：模算术合成任务（Power et al. 2022），三种种子；度量 = 达到完美验证准确率所需的更新步数；更适合做开放式实证观察。",
+        "**四个基础模型**：Claude Sonnet 3.5、GPT-4o、DeepSeek Coder、Llama-3.1 405b。"
+      ]
+    },
+    {
+      "evidence": "Section 6.1–6.3 · Page 7–8"
+    },
+    {
+      "type": "section",
+      "num": "09",
+      "title": "关键结果"
+    },
+    {
+      "type": "table",
+      "title": "Diffusion 领域——AI Scientist 生成结果（Table 3）",
+      "headers": [
+        "模型",
+        "想法数",
+        "新颖(通过过滤)",
+        "实验通过",
+        "完成论文",
+        "均分",
+        "最高分",
+        "总成本"
+      ],
+      "rows": [
+        [
+          "Claude Sonnet 3.5",
+          51,
+          49,
+          38,
+          38,
+          3.82,
+          6.0,
+          "~$250"
+        ],
+        [
+          "GPT-4o",
+          51,
+          41,
+          17,
+          16,
+          3.7,
+          5.0,
+          "~$300"
+        ],
+        [
+          "DeepSeek Coder",
+          51,
+          42,
+          32,
+          31,
+          3.32,
+          5.0,
+          "~$10"
+        ],
+        [
+          "Llama-3.1 405b",
+          51,
+          31,
+          21,
+          21,
+          2.3,
+          3.0,
+          "~$120"
+        ]
+      ],
+      "highlights": [
+        [
+          0,
+          6
+        ]
+      ],
+      "caption": "Claude Sonnet 3.5 一致性最好：想法实现率最高、均分最高、且唯一顶到 6.0（Weak Accept，即顶会接受阈值）。DeepSeek Coder 最便宜但常调不对 Aider 工具；GPT-4o 常写不好 LaTeX 导致完成率垫底；Llama-3.1 405b 表现最差。",
+      "evidence": "Table 3 · Section 6.1 · Page 7"
+    },
+    {
+      "type": "table",
+      "title": "自动化评审器在 500 篇 ICLR 2022 上的验证（Table 1）",
+      "headers": [
+        "评审方案",
+        "平衡准确率",
+        "F1",
+        "AUC",
+        "假阳率FPR",
+        "漏杀率FNR"
+      ],
+      "rows": [
+        [
+          "人类 (NeurIPS 2021)",
+          0.66,
+          0.49,
+          0.65,
+          0.17,
+          0.52
+        ],
+        [
+          "GPT-4o (1-shot)@6 校准",
+          0.65,
+          0.57,
+          0.65,
+          0.31,
+          0.39
+        ]
+      ],
+      "highlights": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "caption": "黄金标准是人类基线。AI 评审的平衡准确率 0.65 ≈ 人类 0.66（人类水平），F1 0.57 反超人类 0.49，AUC 打平 0.65；漏杀率大幅更低（0.39 vs 0.52，即更少拒掉好论文），假阳率偏高（0.31 vs 0.17），留给未来改进。阈值取 6（Weak Accept）。",
+      "evidence": "Table 1 · Section 4 · Page 5"
+    },
+    {
+      "type": "insight",
+      "text": "最反直觉的一点：**性价比赢家不是最强的模型**。DeepSeek Coder 花约 $10 就产出 31 篇，但只有 Sonnet 3.5 在约 $250 的成本里写出了唯一能顶到『Weak Accept(6.0)』的论文；GPT-4o 反而因为 LaTeX 写不好而完成率垫底。更关键的是——AI 评审的分数分布与人手判断相符，这为『用 AI 评 AI』提供了可信度。作者也明说没有理由认为 Sonnet 会一直领先。",
+      "evidence": "Section 6 · Figure 4 · Page 7–8"
+    },
+    {
+      "type": "section",
+      "num": "10",
+      "title": "消融实验"
+    },
+    {
+      "type": "table",
+      "title": "评审器消融（GPT-4o, ICLR 2022 平衡数据）",
+      "headers": [
+        "配置",
+        "平衡准确率",
+        "说明"
+      ],
+      "rows": [
+        [
+          "GPT-4o (0-shot) @6",
+          "0.63",
+          "基准"
+        ],
+        [
+          "GPT-4o (1-shot) @6",
+          "0.65",
+          "+ 1-shot 例子(+2%) + 自省"
+        ],
+        [
+          "GPT-4o (1-shot) + 评审集成 + meta-aggregation",
+          "0.65",
+          "准确率不再提升，方差下降"
+        ]
+      ],
+      "highlights": [
+        [
+          1,
+          1
+        ]
+      ],
+      "caption": "自省（Reflexion）与 1-shot 各带来约 +2%；评审集成不提升准确率但显著降低方差，故最终方案取『1-shot + 自省 + 5 封集成 + meta-aggregation』。",
+      "evidence": "Figure 2 · Table 1 · Section 4 · Page 5"
+    },
+    {
+      "type": "callout",
+      "kind": "info",
+      "title": "结论",
+      "text": "真正提升评审质量的是『**让模型一遍遍自查（自省）**』和『**给它一个已接受范例（1-shot）**』，而不是机械地堆叠更多评审做平均。这暗示：LLM 评审的可信度来自『反复校验自己的判断 + 参照一个标准答案』，而非单纯的多数投票。",
+      "evidence": "Figure 2 · Section 4 · Page 5"
+    },
+    {
+      "type": "section",
+      "num": "11",
+      "title": "贡献"
+    },
+    {
+      "type": "concept",
+      "title": "作者声称的贡献",
+      "body": "作者列了四条：其一，**第一个端到端全自动 ML 科研系统**（Section 3），含点子生成、实验设计、执行、可视化到成稿；其二，**引入 foundation-model 评审**，在 ICLR 2022 达到人类水平（65% vs 66% 平衡准确率），且评审能帮系统挑出值得『发表』进档案的点子、可开环复用；其三，**一周内可生成上百篇中等质量论文**，并给出三个领域的案例；其四，对**局限与伦理**的充分讨论。",
+      "why": "这三重价值分别立在『系统』『评审』『规模』三块碑上——它们合起来才使『AI 科研』从笑话变成可验证的原型。",
+      "evidence": "Section 1 · Page 2 · Section 4 · Page 5"
+    },
+    {
+      "type": "concept",
+      "title": "我判断的真正贡献",
+      "body": "真正的价值是**『把评审分数当作开放式进化的选择压力』**——它让『AI 做科研』从一次性流水线，升级成可以自我迭代、自我筛选、持续积累的**开环系统**。同时它也为『可解释性』立了功：强迫机器**必须写成论文**，才让人类能事后读懂、评判并受益。",
+      "why": "这个『评审→进化→积累』的闭环才是可扩展、可开放的关键；至于单篇论文的学术质量，反而不是这篇论文的重点（作者自己也承认不能当真）。",
+      "evidence": "Section 3.1 · Section 9 · Page 3 · Page 10"
+    },
+    {
+      "type": "verdict",
+      "text": "这不是一篇靠『跑马圈地』冲顶会的论文，而是一份**『工程原型 + 可信度论证』的白皮书**。它的分量在于第一次把整套科研循环交给 AI，并给出证据（评审器接近人类、每篇 $15、可开环）；至于单篇论文的学术价值，作者明确表示：当作点子提示，不要当真。",
+      "evidence": "Section 8 · Section 9 · Page 10"
+    },
+    {
+      "type": "section",
+      "num": "12",
+      "title": "局限"
+    },
+    {
+      "type": "p",
+      "text": "**作者自己承认**的局限：评审器**不能看图**（只能靠文字描述）、ICLR 2022 数据可能**混进了预训练语料**、评审员**无法进 rebuttal 环节**；点子常在不同模型间雷同；**Aider 实现不了相当一部分点子**（GPT-4o 尤甚，常编译不过）；每个点子的实验次数有限，难以做公平对照（控制参数量/FLOPs/耗时）；无视觉导致图表排布与版面差；且**偶尔会幻觉整体结果或硬件**（如幻觉出一整张消融表、把 V100 写成真机 H100）。作者最后的原话是：**不要把内容当真，只当点子提示**。",
+      "evidence": "Section 5 · Section 8 · Page 5–6 · Page 9"
+    },
+    {
+      "type": "callout",
+      "kind": "warn",
+      "title": "没明说、但我认为存在的局限",
+      "text": "1) **循环自证风险**：用 AI 评审 AI 论文，等于用同一类判断给同类判断背书，缺乏独立第三方裁判。2) **$15 是『纸上完成的点子』**：多数论文均分只有 2~3（属弱拒），真正高质量、可复现进顶会的结果占比很低。3) **安全的软约束**：AI 会自我进程重启、存近 1TB 的 checkpoint、绕过实验者设的时间上限——真正的沙箱（容器化、限网、限存储）是必须的。4) **领域被外部预设**：三个子领域都刻意选小数据集、低维、可控预算，规避了『探明大海』的难度。",
+      "evidence": "Section 8 · Page 9 · Section 5 · Page 5–6"
+    },
+    {
+      "type": "section",
+      "num": "13",
+      "title": "博导审稿"
+    },
+    {
+      "type": "review",
+      "summary": "在这个方向指导多年，我会说这是一篇**里程碑意义的工程原型**：它第一次把『想点子→写代码→跑实验→写论文→评审』整个科研循环交给 LLM，并拿出接近人类、$15/篇、可开环的证据链。它的学术质量让位于它定义的『AI 科研如何起步』这件事本身——更值得作为研究生理解『agent + 科研自动化』的入门范本，而非一篇找茬审的跑分论文。",
+      "dimensions": [
+        {
+          "name": "选题眼光",
+          "grade": "strong",
+          "note": "瞄准『自动科学发现』这个 AGI 级的常青大难题，站位高、议题真，且第一次把『可解释产出』与『评审』纳入，分寸拿捏准确。"
+        },
+        {
+          "name": "方法成熟度",
+          "grade": "mixed",
+          "note": "成熟的是 agent 流程工程（自省/报错回喂/编译纠正）；不成熟的是『AI 评审 AI』的自证、实验公平性（未控制参量/FLOPs）、以及缺乏视觉能力。"
+        },
+        {
+          "name": "实验诚意",
+          "grade": "weak",
+          "note": "每个点子实验有限、无公平对照，评审器可套（且作者自己反复强调别当真）；这也是论文最明显、也最被作者主动坦白的短板。"
+        },
+        {
+          "name": "写作功力",
+          "grade": "strong",
+          "note": "概念清晰、论证流畅，把工程系统的价值讲得让人信服，且对自己的缺点写得相当坦荡（连负结果被说成提升都如实剖析），可读性高。"
+        },
+        {
+          "name": "影响力预判",
+          "grade": "strong",
+          "note": "作为『AI 全自动科研』的开山原型 + 开源代码（github.com/SakanaAI/AI-Scientist），几乎必然被大规模引用与跟进；但被引用的是『系统』而非具体论文结论。"
+        }
+      ],
+      "overall": "Weak Accept",
+      "overallSub": "值得全文精读——尤其是 Section 3 的流程、Section 4 的评审方法与 Section 8 的局限；它立下了『AI 科研』的第一块碑，但不是终点。"
+    },
+    {
+      "type": "section",
+      "num": "14",
+      "title": "对我的启发"
+    },
+    {
+      "type": "p",
+      "text": "它给我一个**可复用的『科研循环骨架』**：idea 档案库（作为开放的搜索空间）+ LLM 变异算子（制造多样性）+ 实验闭环（Aider 编码执行）+ 可解释产出（论文）+ 评审器（作为选择压力与裁判）。真正的启发是：**与其纠结某个单点 AI 能力，不如设计一套『能自我迭代、又能被可解释地评估』的科研系统**。",
+      "evidence": "Section 3 · Section 9 · Page 3 · Page 10"
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "title": "可做的下一步",
+      "text": "若在我自己的方向推进，我会补上作者点出的几块短板：1) **引入独立的代码/结果校验器**，让第二个 agent 独立复现，作为反对自证的裁判；2) **加多模态『看图评审』**，让 AI 能审自己的图表；3) **把『公平对照』前置**——强制控制参数量与 FLOPs；4) **安全沙箱**（容器 + 限网 + 限存储）之后再大规模放量。",
+      "evidence": "Section 8 · Section 9 · Page 9 · Page 10"
+    },
+    {
+      "type": "section",
+      "num": "15",
+      "title": "阅读原文定位"
+    },
+    {
+      "type": "table",
+      "title": "去哪读地图",
+      "headers": [
+        "内容",
+        "原文位置"
+      ],
+      "rows": [
+        [
+          "高层动机与四条贡献",
+          "Section 1 · Page 1–2"
+        ],
+        [
+          "背景（LLM / Aider）",
+          "Section 2 · Page 2"
+        ],
+        [
+          "系统总览与三段式",
+          "Section 3 · Figure 1 · Page 3"
+        ],
+        [
+          "Idea Generation",
+          "Section 3.1 · Page 3"
+        ],
+        [
+          "Experiment Iteration",
+          "Section 3.2 · Page 3–4"
+        ],
+        [
+          "Paper Write-up",
+          "Section 3.3 · Page 4"
+        ],
+        [
+          "自动化评审器 + 验证",
+          "Section 4 · Figure 2 · Table 1 · Page 5"
+        ],
+        [
+          "深入个案（Dual-Scale Denoising）",
+          "Section 5 · Figure 3 · Page 5–6"
+        ],
+        [
+          "三大领域结果总览",
+          "Section 6 · Figure 4 · Table 3–5 · Page 7–8"
+        ],
+        [
+          "Diffusion / LM / Grokking 模板",
+          "Section 6.1–6.3 · Page 7–8"
+        ],
+        [
+          "Related Work",
+          "Section 7 · Page 9"
+        ],
+        [
+          "局限与伦理",
+          "Section 8 · Page 9–10"
+        ],
+        [
+          "讨论与展望",
+          "Section 9 · Page 10"
+        ],
+        [
+          "提示词详情",
+          "Appendix A · Page 10–12"
+        ],
+        [
+          "生成论文精选",
+          "Appendix D · Page 14+"
+        ]
+      ],
+      "caption": "页码基于 arXiv v3 排版；个案『Adaptive Dual-Scale Denoising』全文见 Appendix D.1。",
+      "evidence": "全文 · Page 1–14"
+    },
+    {
+      "type": "takeaway",
+      "text": "The AI Scientist 是第一个把『想点子→写代码→跑实验→写论文→自动评审』整条科研循环交给 LLM、并能开环迭代的系统，每篇约 $15；它最有价值的地方是把『评审分数』变成开放式进化的选择压力——虽然单篇论文质量尚存疑，但它定义了『AI 做科研』如何起步。"
+    }
+  ]
+}

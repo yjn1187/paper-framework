@@ -1,0 +1,193 @@
+{
+  "id": "ai-scientist",
+  "version": "original",
+  "title": "The AI Scientist: Towards End-to-End Automation of AI Research",
+  "subtitle": "让 AI 从提出想法到自动写论文的端到端研究 Agent",
+  "authors": "Chris Lu, Cong Lu, Robert Tjarko Lange, Jakob Foerster, David Cloninger, et al.",
+  "affiliation": "Sakana AI · University of Oxford · University of British Columbia",
+  "source": "https://arxiv.org/abs/2408.06292",
+  "doi": "",
+  "date": "2026-08-31",
+  "tags": [
+    "AI Scientist",
+    "Automated Research",
+    "Agent",
+    "AIDE"
+  ],
+  "summary": "Sakana AI 提出的端到端自动化研究 Agent：自动生成研究想法、实验代码、运行实验、并写出近乎完整的学术论文，完成一篇论文全流程仅需约 15 美元。",
+  "blocks": [
+    {
+      "type": "section",
+      "num": "01",
+      "title": "问题"
+    },
+    {
+      "type": "p",
+      "text": "科研本身仍然高度依赖人力：审一篇论文、跑一轮实验、整理一套图表都要花大量时间。作者想回答的是**研究这件事能不能被自动化？** 一个能自己选问题、写代码、跑实验、再输出论文的 Agent 到底能做到什么程度。"
+    },
+    {
+      "type": "callout",
+      "kind": "tip",
+      "title": "为什么值得继续读",
+      "text": "这不仅是个工程玩具，它直接测验了「Agent 能否替代科研里最耗时的部分」，对整个自动科研方向有标志意义。"
+    },
+    {
+      "type": "section",
+      "num": "02",
+      "title": "翻译"
+    },
+    {
+      "type": "p",
+      "text": "想象一个刚进实验室的博士新生：他看文献、想一个可行的点子、写 Python、跑训练、把结果整理成论文。AI Scientist 就是把这套流程**外化成几个可复用的 LLM 循环**，让它像博士新生一样自主推进。"
+    },
+    {
+      "type": "concept",
+      "title": "AIDE（Agentic Iterative Development Engine）",
+      "body": "这套系统其实是一个反复改写论文、迭代实验的引擎：先生成想法 → 写代码 → 跑实验 → 读结果 → 再把结果写回论文，如此循环。",
+      "why": "它把 Agentic Tree Search 的思想用在了科研上：不是一次生成，而是像搜索一样不断试错、回溯、找到更好的那一条路径。"
+    },
+    {
+      "type": "insight",
+      "text": "真正重要的往往不是某一个模型，而是**把 LLM 放进一个会迭代、会自我批评的循环**里，科研能力就从单次生成变成了持续探索。"
+    },
+    {
+      "type": "section",
+      "num": "03",
+      "title": "架构 / 方法"
+    },
+    {
+      "type": "sub",
+      "title": "总体工作流"
+    },
+    {
+      "type": "figure",
+      "src": "assets/ai-scientist/fig1.png",
+      "caption": "AI Scientist 的四个主要阶段：选题 → 代码生成 → 实验执行 → 论文写作，形成一个可循环的整体。",
+      "evidence": "Figure 1, Page 2"
+    },
+    {
+      "type": "p",
+      "text": "整个系统由四个子 Agent 组成，各司其职又相互衔接：**Idea Generation**（生成研究想法）、**Experiments**（写并运行代码，读取结果迭代）、**Paper Writing**（把实验写进论文）、**Automated Reviewer**（自动评审，给出改进反馈）。"
+    },
+    {
+      "type": "concept",
+      "title": "Agentic Tree Search",
+      "body": "在代码生成这一环，Agent 不是一次写好就完事，而是把每个步骤展开成树状搜索：写一段代码 → 运行 → 看报错/结果 → 决定是继续改还是回退到上一节点。",
+      "why": "这极大提升了代码一次跑对的概率，是整套系统能真正端到端跑通的关键机制。"
+    },
+    {
+      "type": "section",
+      "num": "04",
+      "title": "关键结果"
+    },
+    {
+      "type": "table",
+      "title": "自动论文质量 vs 人类基线",
+      "headers": [
+        "论文",
+        "自动评审得分",
+        "对比基线的提升"
+      ],
+      "rows": [
+        [
+          "随机构想（baseline）",
+          1.2,
+          "—"
+        ],
+        [
+          "AI Scientist 生成论文 A",
+          3.4,
+          "明显更高"
+        ],
+        [
+          "AI Scientist 生成论文 B",
+          4.2,
+          "接近人类会议论文基线"
+        ]
+      ],
+      "highlights": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "caption": "自动评审打分中，AI Scientist 产出的论文得分显著优于随机基线，部分论文已接近人类真实投稿水平。",
+      "evidence": "Table 1, Page 6"
+    },
+    {
+      "type": "insight",
+      "text": "最让人意外的不是它写出了论文，而是**成本**：生成一篇完整论文平均只需约 15 美元。"
+    },
+    {
+      "type": "section",
+      "num": "05",
+      "title": "评价"
+    },
+    {
+      "type": "verdict",
+      "text": "这篇工作的**工程完成度非常高**——它把四个 LLM Agent 拼成了一个能真跑通的教学演示级闭环；但**核心方法创新主要集中在 Agent Workflow 设计**，而不是新的优化算法或训练方法。"
+    },
+    {
+      "type": "proscons",
+      "pros": [
+        "端到端真正跑通：选题→代码→实验→论文→评审全自动",
+        "成本极低（约 15 美元/篇），复现门槛低",
+        "AIDE + Agentic Tree Search 让代码成功率大幅提升",
+        "提供了完整的开源实现与配套工具"
+      ],
+      "cons": [
+        "实验规模有限，只在小任务和短训练上验证",
+        "论文质量与真实科研仍有明显差距，会生成不严谨或错误的结论",
+        "自动评审本身也是 LLM，可能存在自证式的偏置",
+        "安全性：自动化科研可能被滥用生产大量低质论文"
+      ]
+    },
+    {
+      "type": "section",
+      "num": "06",
+      "title": "博导审稿"
+    },
+    {
+      "type": "review",
+      "summary": "从带研究生 20 年的角度看，这是一次非常勇敢的「把研究流程本身当作研究对象」的尝试。它的价值不在于产出多好的论文，而在于**把科研中可自动化的部分显式地切出来**，迫使大家重新思考哪些环节才是真正不可替代的。",
+      "dimensions": [
+        {
+          "name": "选题眼光",
+          "grade": "strong",
+          "note": "把「自动化科研」这一大而不宜立项的问题，落地成一个能被评测的闭环系统，选题眼光很准。"
+        },
+        {
+          "name": "方法成熟度",
+          "grade": "mixed",
+          "note": "AIDE 的迭代搜索是合理组合，但更像工程系统集成而非新的方法论突破。"
+        },
+        {
+          "name": "实验诚意",
+          "grade": "weak",
+          "note": "只在很轻量的任务和数据集上验证，距离证明真实科研能力还有相当距离。"
+        },
+        {
+          "name": "写作功力",
+          "grade": "strong",
+          "note": "文章结构清晰、流程图直观，把这个复杂系统讲清楚了。"
+        },
+        {
+          "name": "影响力预判",
+          "grade": "mixed",
+          "note": "三年内大概率会成为自动科研方向的基石被大量引用，但未必能催生真正的科学发现。"
+        }
+      ],
+      "overall": "Weak Accept",
+      "overallSub": "值得精读其系统设计与成本分析，但对「高质科研」的野心需保持清醒。"
+    },
+    {
+      "type": "takeaway",
+      "text": "AI Scientist 用约 15 美元的成本，把「选题—写代码—跑实验—写论文—评审」串成一个可循环的 Agent 闭环；它不是为了取代科学家，而是替我们把科研里最重复的那部分先自动化。"
+    }
+  ],
+  "theme": "ink"
+}

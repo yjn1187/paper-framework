@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>论文解读工作台</title>
+<style>
+:root{--bg:#faf9f7;--surface:#fff;--ink:#1c1b1a;--soft:#55524d;--faint:#8a867f;--line:#e7e3dc;--accent:#b33a1e;--accent-soft:#f6ece7;--green:#2e7d4f;--radius:12px;--sans:ui-sans-serif,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;--mono:"SF Mono","Fira Code",Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);padding:2.2rem 1.5rem 5rem;line-height:1.6}
+h1{font-size:1.5rem;margin:0 0 .3rem;letter-spacing:-.01em}
+.sub{color:var(--faint);font-size:.9rem;margin-bottom:1.8rem}
+.wrap{max-width:1120px;margin:0 auto}
+.layout{display:grid;grid-template-columns:340px 1fr;gap:1.3rem}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.2rem 1.3rem;margin-bottom:1.3rem}
+.panel h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin:0 0 .9rem;font-weight:650}
+label{display:block;font-size:.8rem;color:var(--soft);margin:0 0 .3rem;font-weight:600}
+input[type=text],textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;padding:.6rem .75rem;font-size:.92rem;font-family:var(--sans);background:#fff;color:var(--ink)}
+textarea{font-family:var(--mono);font-size:.82rem;line-height:1.5;resize:vertical;min-height:230px}
+select{appearance:auto}
+.field{margin-bottom:.85rem}
+.row{display:flex;gap:.6rem}
+.row>*{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border:none;border-radius:8px;padding:.62rem 1rem;font-size:.9rem;font-weight:600;cursor:pointer;font-family:var(--sans);transition:filter .1s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-secondary{background:#f0eee9;color:var(--ink)}
+.btn-ghost{background:none;border:1px solid var(--line);color:var(--soft)}
+.btn-green{background:var(--green);color:#fff}
+.btn-sm{font-size:.8rem;padding:.4rem .7rem}
+.btn:hover{filter:brightness(.95)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.hint{font-size:.76rem;color:var(--faint);margin-top:.5rem;line-height:1.5}
+/* 日志 */
+.log{background:#111;border-radius:8px;padding:1rem;font-family:var(--mono);font-size:.82rem;line-height:1.7;color:#d7d3ce;max-height:380px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+.log.ok{color:#7ee2a8}
+.log .t{color:#8fd3a3}
+.log .tl{color:#a3a3a3}
+.log .reason{color:#9ecbff}
+.log .warn{color:#f2b16a}
+.fullbox{background:#151515;border-radius:8px;padding:1rem;font-family:var(--mono);font-size:.76rem;line-height:1.6;color:#9a9a9a;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-word;display:none}
+.toggle-link{font-size:.8rem;color:var(--accent);cursor:pointer;margin-top:.5rem;user-select:none}
+.status{display:inline-flex;align-items:center;gap:.45rem;font-size:.8rem;font-weight:600;padding:.3rem .75rem;border-radius:999px}
+.st-idle{background:#f0eee9;color:var(--soft)}
+.st-run{background:var(--accent-soft);color:var(--accent)}
+.st-ok{background:#e7f2ec;color:var(--green)}
+.st-err{background:#fde7e3;color:#b3271c}
+.spinner{width:12px;height:12px;border:2px solid #e5ddd4;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 论文库 */
+.lib-item{display:flex;align-items:center;gap:.8rem;padding:.8rem .9rem;border:1px solid var(--line);border-radius:10px;margin-bottom:.6rem;background:var(--surface);cursor:pointer}
+.lib-item:hover{border-color:var(--accent)}
+.lib-item .t{flex:1;min-width:0;font-size:.92rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-item .m{font-size:.76rem;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-actions{display:flex;gap:.35rem;flex-shrink:0}
+.badge{font-size:.68rem;padding:.12rem .4rem;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-weight:700}
+.badge.theme-simona{background:#ede9fe;color:#7c3aed}
+.badge.b-out{background:#e7f2ec;color:var(--green)}
+.badge.v-original{background:#eef3f8;color:#2f5d8a}
+.badge.v-detailed{background:#ede9fe;color:#7c3aed}
+.srclink{font-size:.78rem;color:var(--accent);text-decoration:none;font-weight:600;padding:.4rem .5rem}
+.srclink:hover{text-decoration:underline}
+.empty{color:var(--faint);text-align:center;padding:2rem 0;font-size:.9rem}
+/* 顶部栏 */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.8rem}
+.tabs{display:flex;gap:.3rem;background:#f0eee9;border-radius:10px;padding:.25rem}
+.tabs button{border:none;background:none;padding:.45rem 1rem;border-radius:8px;font-size:.86rem;font-weight:600;color:var(--soft);cursor:pointer;font-family:var(--sans)}
+.tabs button.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tablink{border:none;background:none;padding:.45rem .9rem;border-radius:8px;font-size:.86rem;font-weight:600;color:var(--soft);cursor:pointer;text-decoration:none;font-family:var(--sans);display:inline-flex;align-items:center;gap:.3rem}
+.tablink:hover{color:var(--accent);background:var(--accent-soft)}
+.view{display:none}
+.view.active{display:block}
+/* 编辑器页 */
+.editor-top{display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap}
+.crumb{font-family:var(--mono);font-size:.82rem;color:var(--faint)}
+.frame-wrap{width:100%;height:70vh;border:1px solid var(--line);border-radius:10px;background:#fff}
+iframe{width:100%;height:100%;border:none;border-radius:10px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:900px){.split{grid-template-columns:1fr}}
+.split .left,.split .right{min-width:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="topbar">
+  <div>
+    <h1>📚 论文解读工作台</h1>
+    <div class="sub">解析 · 渲染 · 编辑，全程在浏览器完成</div>
+  </div>
+  <div class="tabs">
+    <button id="tab-generate" class="active" onclick="tab('generate')">生成</button>
+    <button id="tab-lib" onclick="tab('lib')">论文库</button>
+    <a href="/library" target="_blank" class="tablink" title="独立静态论文库页">🗂 打开库页</a>
+  </div>
+</div>
+
+<!-- ===== 生成视图 ===== -->
+<div id="view-generate" class="view active">
+<div class="layout">
+  <!-- 左：输入 -->
+  <div>
+    <div class="panel">
+      <h2>输入论文</h2>
+      <div class="field">
+        <label>论文（arXiv 链接 / 本地 PDF 路径）</label>
+        <input type="text" id="paper" placeholder="https://arxiv.org/abs/xxxx.xxxxx" oninput="maybeSuggestId()">
+      </div>
+      <div class="hint">也可直接拖拽 PDF 到窗口：<a href="javascript:void 0" onclick="uploadPick()">上传 PDF</a></div>
+      <input type="file" id="filePick" accept=".pdf" style="display:none" onchange="upload()">
+    </div>
+    <div class="panel">
+      <h2>参数</h2>
+      <div class="field">
+        <label>提示词版本</label>
+        <select id="prompt">
+          <option value="original">原版 · 快速理解（7 段）</option>
+          <option value="detailed">详细 · 科研级（15 节 + 证据可追溯）</option>
+        </select>
+        <div class="hint">同一 id 会生成不同版本（原版/详细），论文页右上角可切换</div>
+      </div>
+      <div class="field">
+        <label>主题</label>
+        <select id="theme">
+          <option value="ink">ink（默认 · 衬线简洁）</option>
+          <option value="simona">simona（原版 · 紫色/绿色博导卡片）</option>
+        </select>
+      </div>
+        <div class="row">
+          <div class="field">
+            <label>Agent</label>
+            <select id="backend">
+              <option value="opencode">opencode</option>
+              <option value="codex">codex</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>ID（留空自动）</label>
+            <input type="text" id="pid" placeholder="auto">
+          </div>
+        </div>
+        <div class="hint" id="backendHint"></div>
+      <div class="field">
+        <label>模型（留空用默认）</label>
+        <input type="text" id="model" placeholder="i.e. openai/gpt-5">
+      </div>
+    </div>
+    <div class="panel">
+      <h2>操作</h2>
+      <button class="btn btn-primary" id="genBtn" onclick="generate()">✨ 开始生成解读</button>
+      <div style="margin-top:.6rem"></div>
+      <button class="btn btn-secondary" onclick="newManual()">＋ 空白模板（手动填）</button>
+    </div>
+  </div>
+
+  <!-- 右：状态 / 日志 -->
+  <div>
+    <div class="panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem">
+        <h2 style="margin:0">生成进度</h2>
+        <span id="status" class="status st-idle">空闲</span>
+      </div>
+      <div class="log" id="log"><span style="color:#6b6b6b">这里会显示生成过程日志…</span></div>
+      <div class="toggle-link" id="fullToggle" onclick="toggleFull()">▸ 显示完整原始日志</div>
+      <div class="fullbox" id="fullbox"></div>
+      <div style="margin-top:.8rem;display:flex;gap:.6rem;flex-wrap:wrap">
+        <button class="btn btn-green btn-sm" id="toEditBtn" style="display:none" onclick="openEdit()">🔧 进入编辑器预览</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== 论文库视图 ===== -->
+<div id="view-lib" class="view">
+  <div class="panel">
+    <h2>论文库</h2>
+    <div id="libList"><div class="empty">加载中…</div></div>
+  </div>
+</div>
+
+<!-- ===== 编辑器（隐藏，generate 完成后进入） ===== -->
+<div id="view-edit" class="view">
+  <div class="panel">
+    <div class="editor-top">
+      <button class="btn btn-ghost btn-sm" onclick="tab('generate')">← 返回</button>
+      <span class="crumb" id="editCrumb"></span>
+      <span style="flex:1"></span>
+      <select id="editTheme" onchange="renderFromEdit()" style="width:auto">
+        <option value="ink">ink 主题</option>
+        <option value="simona">simona 主题</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="saveBtn" onclick="saveAndRender()">💾 保存并渲染</button>
+      <button class="btn btn-secondary btn-sm" onclick="openPreview()">↗ 新窗口打开</button>
+    </div>
+    <div class="split">
+      <div class="left">
+        <h2>content.json（可编辑）</h2>
+        <textarea id="editor" spellcheck="false"></textarea>
+        <div class="hint" id="editHint"></div>
+      </div>
+      <div class="right">
+        <h2>预览</h2>
+        <div class="frame-wrap"><iframe id="preview"></iframe></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>{const d=document.createElement('div');d.textContent=s||'';return d.innerHTML};
+let currentPid=null, currentTheme='ink', currentPrompt='original', libData=[];
+
+function tab(name){
+  ['generate','lib','edit'].forEach(v=>{ $('view-'+v).classList.toggle('active',v===name); });
+  ['generate','lib'].forEach(v=>{ $('tab-'+v).classList.toggle('active',v===name); });
+  if(name==='lib')loadLib();
+}
+
+async function jget(u){const r=await fetch(u);return r.json()}
+async function jsend(method,u,body){const r=await fetch(u,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});return r.json()}
+
+function setStatus(state,label){
+  const st=$('status');st.className='status st-'+state;st.innerHTML=state==='run'?'<span class="spinner"></span>':'';
+  st.appendChild(document.createTextNode(label));
+}
+
+function maybeSuggestId(){
+  if($('pid').value)return;
+  const m=$('paper').value.match(/abs\/([0-9.]+)/);
+  if(m)$('pid').value=m[1];
+}
+
+async function generate(){
+  const paper=$('paper').value.trim();
+  if(!paper){alert('请填写论文');return}
+  const body={paper, prompt:$('prompt').value, version:$('prompt').value, theme:$('theme').value, backend:$('backend').value, model:$('model').value.trim()||null, id:$('pid').value.trim()||null};
+  const res=await jsend('POST','/api/generate',body);
+  if(res.error){alert(res.error);return}
+  currentTheme=body.theme; currentPrompt=body.prompt; currentPid=res.pid;
+  $('genBtn').disabled=true; $('toEditBtn').style.display='none';
+  $('log').textContent=''; setStatus('run','生成中…');
+  pollJob(res.jid);
+}
+
+function logHtml(lines){
+  return lines.map(l=>{
+    const e=esc(l);
+    if(/✓/.test(l))return '<span class="ok">'+e+'</span>';
+    if(/… 进入|开始一轮|启动 codex/.test(l))return '<span class="t">'+e+'</span>';
+    if(/🧠/.test(l))return '<span class="reason">'+e+'</span>';
+    if(/⚠|✗|✎/.test(l))return '<span class="warn">'+e+'</span>';
+    if(/^[0-9:]+ [├⚙]/.test(l))return '<span class="tl">'+e+'</span>';
+    return e;
+  }).join('\n');
+}
+
+function toggleFull(){
+  const box=$('fullbox'),t=$('fullToggle');
+  if(box.style.display==='none'||!box.style.display){box.style.display='block';t.textContent='▾ 收起完整原始日志'}else{box.style.display='none';t.textContent='▸ 显示完整原始日志'}
+}
+
+function pollJob(jid){
+  const timer=setInterval(async ()=>{
+    const j=await jget('/api/jobs/'+jid);
+    if(j.error){clearInterval(timer);setStatus('err','出错');alert(j.error);$('genBtn').disabled=false;return}
+    const log=$('log');
+    log.innerHTML=logHtml(j.log);
+    log.scrollTop=log.scrollHeight;
+    if(j.full){$('fullbox').textContent=j.full;}
+    if(j.status==='done'){clearInterval(timer);log.innerHTML+='\n<span class="ok">✓ 生成完成</span>';setStatus('ok','已完成');$('genBtn').disabled=false;if(j.pid){currentPid=j.pid;$('pid').value=j.pid;}if(j.stub){log.innerHTML+='\n<span>⚠ 注：产出是占位模板，请进编辑器补全内容。</span>';}$('toEditBtn').style.display='inline-flex';}
+    else if(j.status==='error'){clearInterval(timer);setStatus('err','失败，见日志');$('genBtn').disabled=false;if(j.raw){$('fullbox').textContent=j.raw;$('fullToggle').textContent='▾ 收起完整原始日志';$('fullbox').style.display='block';log.innerHTML+='\n> 无法解析 JSON，可在编辑器手填。';}}
+  },1500);
+}
+
+async function openEdit(){
+  tab('edit');
+  const d=await jget('/api/papers/'+currentPid);
+  $('editCrumb').textContent='content/'+currentPid+'.json';
+  $('editor').value=JSON.stringify(d,null,2);
+  $('editTheme').value=d.theme||'ink';
+  $('editHint').textContent='';
+  renderFromEdit();
+}
+
+function getEditorJson(){
+  return JSON.parse($('editor').value);
+}
+
+async function saveAndRender(){
+  try{
+    const o=getEditorJson();
+    // 更新 id/title 入 crumb
+    await jsend('PUT','/api/papers/'+currentPid,o);
+    const theme=$('editTheme').value;
+    $('editHint').textContent='已保存，正在渲染…';
+    await renderFromEdit();
+    $('editHint').textContent='✔ 保存并渲染完成';
+  }catch(e){$('editHint').textContent='JSON 格式错误：'+e.message;alert('JSON 无效：'+e.message)}
+}
+
+async function renderFromEdit(){
+  try{getEditorJson();}catch(e){return}
+  const res=await jsend('POST','/api/render',{id:currentPid, theme:$('editTheme').value});
+  if(res.error){$('editPreviewHint')&&0;$('editHint').textContent=res.error;return}
+  $('preview').src='/api/papers/'+currentPid+'/html?t='+Date.now();
+}
+
+function openPreview(){window.open('/papers/'+currentPid+'/index.html','_blank')}
+
+// 论文库
+async function loadLib(){
+  const items=await jget('/api/papers');
+  libData=items;
+  const box=$('libList');
+  if(!items.length){box.innerHTML='<div class="empty">还没有论文，去「生成」页创建吧</div>';return}
+  box.innerHTML=items.map(p=>{
+    const vbadges=(p.versions||[]).map(v=>`<span class="badge v-${v}">${v==='detailed'?'详细':v==='original'?'原版':v}</span>`).join('');
+    const src=(p.source||p.source_pdf)&&p.source?'<a class="srclink" onclick="event.stopPropagation()" href="'+esc(p.source)+'" target="_blank">原文</a>':'';
+    return `
+    <div class="lib-item" onclick="libOpenItem('${p.id}')">
+      <div class="t">${esc(p.title)}</div>
+      <div class="m">${esc(p.meta)}</div>
+      ${vbadges}
+      ${p.exists?'<span class="badge b-out">已渲染</span>':''}
+      <div class="lib-actions">
+        ${src}
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();libOpen('${p.id}')">打开</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();libRender('${p.id}')">渲染</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();libDelete('${p.id}')">删</button>
+      </div>
+    </div>`}).join('');
+}
+function libOpenItem(id){currentPid=id;openEdit();}
+function libOpen(id){window.open('/papers/'+id+'/index.html','_blank');}
+async function libRender(id){
+  currentPid=id;
+  const r=await jsend('POST','/api/render',{id,theme:$('editTheme').value||'ink'});
+  if(r.error){alert(r.error);return}
+  window.open('/papers/'+id+'/index.html','_blank');loadLib();
+}
+async function libDelete(id){
+  if(!confirm('删除论文 '+id+'？（会删除解读与渲染）'))return;
+  await fetch('/api/papers/'+id,{method:'DELETE'});
+  if(currentPid===id)currentPid=null;
+  loadLib();
+}
+
+// 上传 / 手动
+function uploadPick(){$('filePick').click()}
+async function upload(){
+  const f=$('filePick').files[0];if(!f)return;
+  const fd=new FormData();fd.append('file',f);
+  const r=await fetch('/api/upload',{method:'POST',body:fd}).then(x=>x.json());
+  if(r.error){alert(r.error);return}
+  $('paper').value=r.path; if(!$('pid').value)$('pid').value=r.pid;
+  alert('已上传到 '+r.path);
+}
+async function newManual(){
+  const pid=prompt('输入 ID（留空自动）','');
+  const r=await jsend('POST','/api/new',{id:pid||null});
+  if(r.error){alert(r.error);return}
+  currentPid=r.pid; tab('edit');await openEdit();
+}
+
+// 拖拽上传
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',async e=>{
+  e.preventDefault();
+  const files=e.dataTransfer&&e.dataTransfer.files;
+  if(files&&files[0]){
+    const f=files[0];
+    const fd=new FormData();fd.append('file',f);
+    const r=await fetch('/api/upload',{method:'POST',body:fd}).then(x=>x.json());
+    if(!r.error){$('paper').value=r.path;if(!$('pid').value)$('pid').value=r.pid;alert('已上传 '+f.name);}
+  }
+});
+
+// 拖拽带 .pdf 提示
+$('paper').addEventListener('change',maybeSuggestId);
+
+// 后端可用性提示
+(async function loadBackends(){
+  try{
+    const b=await jget('/api/backends');
+    const bt=$('backend');
+    const hint=document.createElement('div');hint.className='hint';
+    if(bt){
+      if(b.codex&&b.codex.available){bt.querySelector('option[value=codex]').textContent='codex（可用）';}
+      else{bt.querySelector('option[value=codex]').textContent='codex（不可用）';}
+    }
+    if(b.codex&&b.codex.note){hint.textContent='codex：'+b.codex.note;}
+    $('backendHint')&&$('backendHint').replaceWith(hint);
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

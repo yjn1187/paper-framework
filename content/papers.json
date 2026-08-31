@@ -1,0 +1,74 @@
+[
+  {
+    "id": "2507-01599v1",
+    "title": "Data Agent: A Holistic Architecture for Orchestrating Data+AI Ecosystems",
+    "meta": "当数据库遇上大模型：让「数据智能」系统自己看懂数据、自排流水线、自我反思",
+    "url": "papers/2507-01599v1/index.html",
+    "icon": "📄",
+    "tags": [
+      "Data Agent",
+      "LLM Agent",
+      "数据智能",
+      "多智能体编排",
+      "Data+AI",
+      "数据库"
+    ],
+    "versions": [
+      "original",
+      "detailed"
+    ]
+  },
+  {
+    "id": "ai-scientist",
+    "title": "The AI Scientist: Towards End-to-End Automation of AI Research",
+    "meta": "让 AI 从提出想法到自动写论文的端到端研究 Agent",
+    "url": "papers/ai-scientist/index.html",
+    "icon": "📄",
+    "tags": [
+      "AI Scientist",
+      "Automated Research",
+      "Agent",
+      "AIDE"
+    ],
+    "versions": [
+      "original",
+      "detailed"
+    ]
+  },
+  {
+    "id": "mamba",
+    "title": "Mamba: Linear-Time Sequence Modeling with Selective State Spaces",
+    "meta": "让 SSM 学会『该记的记、该忘的忘』——线性时间的序列建模第一次真正追上 Transformer",
+    "url": "papers/mamba/index.html",
+    "icon": "📄",
+    "tags": [
+      "State Space Models",
+      "Sequence Modeling",
+      "Linear Attention",
+      "Long Context",
+      "Efficient Architecture"
+    ],
+    "versions": [
+      "original",
+      "detailed"
+    ]
+  },
+  {
+    "id": "wanghuang",
+    "title": "Cross-platform, cross-border: How Chinese Wanghuang create opportunity spaces",
+    "meta": "用「平台生态」框架看深圳的网黄，如何在被审查的国内平台与被封锁的海外平台之间、在线上与线下、在深圳与香港之间，硬生生凿出自己的「机会空间」",
+    "url": "papers/wanghuang/index.html",
+    "icon": "📄",
+    "tags": [
+      "平台生态",
+      "数字性工作者",
+      "机会空间",
+      "跨境流动",
+      "中国"
+    ],
+    "versions": [
+      "original",
+      "detailed"
+    ]
+  }
+]

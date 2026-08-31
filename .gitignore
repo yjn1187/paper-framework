@@ -1,0 +1,23 @@
+# ---- 源码与解读数据（提交）----
+# content/*.json 与 prompts/ scripts/ template/ web/ 均提交
+
+# ---- 生成物（忽略，可重新生成）----
+papers/
+
+# ---- 上传/提取的原始素材（大文件，忽略）----
+content/uploads/
+content/assets/
+
+# ---- codex 兼容目录副本 ----
+.cache/
+
+# ---- Python ----
+__pycache__/
+*.pyc
+
+# ---- 临时原始输出 ----
+content/*.raw.txt
+
+# ---- 系统 / 编辑器 ----
+.DS_Store
+Thumbs.db

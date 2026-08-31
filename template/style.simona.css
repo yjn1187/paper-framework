@@ -1,0 +1,215 @@
+/* ============================================================
+   paper-framework · 主题二：simona
+   复刻 https://blog.simona.plus/ 的 paper-to-html 原主题
+   特征：紫色主色、无衬线、760px 正文、黄色 verdict、
+        绿色「博导审稿」supervisor 卡片 + 2 列 score-grid、
+        等宽 architecture 公式块、朴素 h2 标题（无编号徽章）
+   ============================================================ */
+
+:root {
+  --bg: #fafaf9;
+  --fg: #1c1917;
+  --muted: #78716c;
+  --accent: #7c3aed;
+  --accent-light: #ede9fe;
+  --border: #e7e5e4;
+  --code-bg: #f5f5f4;
+  --verdict-bg: #fef3c7;
+  --verdict-border: #f59e0b;
+  --sup-bg: #f0fdf4;
+  --sup-border: #16a34a;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, "Noto Sans SC", "PingFang SC", sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.8;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+
+/* ---------- Header ---------- */
+.paper-header { margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+.paper-header .eyebrow { display: none; }
+.paper-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; letter-spacing: -0.02em; }
+.paper-header .source,
+.paper-header .meta { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+.paper-subtitle { font-size: 0.95rem; color: var(--muted); margin-top: 0.5rem; }
+.paper-summary { font-size: 1rem; color: var(--fg); margin-bottom: 1rem; }
+.paper-summary p { margin-bottom: 0; }
+.paper-header .meta { display: block; margin-top: 0; }
+.paper-header .meta span { display: block; }
+.paper-header .meta span strong { color: var(--muted); font-weight: 600; }
+.tags { margin: 0; }
+.tag {
+  display: inline-block;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  margin-right: 0.3rem;
+}
+.rule { display: none; }
+
+/* ---------- 标题 ---------- */
+h2.sec { font-size: 1.3rem; font-weight: 700; margin-top: 3rem; margin-bottom: 1rem; color: var(--accent); }
+h2.sec .num { font-size: inherit; background: none; color: var(--accent); padding: 0; margin-right: 0.4rem; }
+h3.sub { font-size: 1.05rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.6rem; }
+p { margin-bottom: 1rem; }
+strong { font-weight: 600; }
+
+/* ---------- 语义组件 ---------- */
+
+/* .concept —— 白色卡片 + 紫色标题 */
+.concept {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem 1.5rem;
+  margin: 1rem 0;
+}
+.concept .concept-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--accent); }
+.concept .concept-body p { margin-bottom: 0.4rem; }
+.concept .why { margin-top: 0.6rem; }
+.concept .why .lbl {
+  font-size: 0.8rem; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;
+}
+.concept .why { border-top: none; padding-top: 0; }
+
+/* .insight —— 紫色浅底左边界 */
+.insight {
+  background: var(--accent-light);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 1.2rem 1.5rem;
+  margin: 1.2rem 0;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+.insight::before { display: none; }
+
+/* .verdict —— 黄色卡片 + 边框 */
+.verdict {
+  background: var(--verdict-bg);
+  border: 1px solid var(--verdict-border);
+  border-radius: 8px;
+  padding: 0.8rem 1.2rem;
+  margin: 1.2rem 0;
+  font-weight: 600;
+}
+.verdict .v-label { display: none; }
+.verdict p { margin: 0; font-weight: 600; }
+
+/* .architecture —— 等宽代码块（对应 formula 组件的等宽形式） */
+.architecture {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem 1.5rem;
+  margin: 1.2rem 0;
+  font-family: "SF Mono", "Fira Code", "Menlo", monospace;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* formula —— 无底色、居中 KaTeX */
+.formula-box { margin: 1.4rem 0; }
+.formula-box .f-label { font-size: 0.85rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.formula-box .f-note { font-size: 0.9rem; color: var(--muted); margin-top: 0.6rem; }
+
+/* 图片 */
+figure.paper-figure { margin: 1.4rem 0; text-align: center; }
+figure.paper-figure img { max-width: 100%; border: 1px solid var(--border); border-radius: 6px; }
+figure.paper-figure figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 0.5rem; }
+
+/* 表格 */
+.table-wrap { margin: 1rem 0; overflow-x: auto; }
+table.results { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+table.results thead th {
+  text-align: left; padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border);
+  font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;
+}
+table.results thead { background: none; }
+table.results tbody td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); }
+table.results tbody tr:last-child td { border-bottom: none; }
+table.results td.hl { color: var(--accent); font-weight: 700; }
+.t-caption { font-size: 0.82rem; color: var(--muted); margin-top: 0.4rem; }
+.evidence { font-size: 0.78rem; color: var(--muted); margin-top: 0.3rem; }
+.evidence code { background: #f5f5f4; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.78em; }
+
+/* proscons —— 保留网格但用原主题配色 */
+.proscons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 1.2rem 0; }
+.proscons .box { border-radius: 8px; padding: 1.1rem 1.3rem; border: 1px solid var(--border); background: #fff; }
+.proscons .pros .h { font-size: 0.8rem; font-weight: 700; color: var(--sup-border); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+.proscons .cons .h { font-size: 0.8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+.proscons ul { margin: 0; padding-left: 1.2rem; }
+.proscons li { margin-bottom: 0.4rem; font-size: 0.95rem; }
+@media (max-width: 640px) { .proscons { grid-template-columns: 1fr; } }
+
+/* ============ 博导审稿：supervisor ============ */
+.prof-review {
+  background: var(--sup-bg);
+  border-left: 4px solid var(--sup-border);
+  border-radius: 0 8px 8px 0;
+  padding: 1.5rem;
+  margin: 1.2rem 0;
+}
+.prof-review .h { display: none; }
+.prof-review p { color: var(--fg); }
+.prof-review .dim { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin: 0; }
+.prof-review .dim-top { margin-bottom: 4px; }
+.prof-review .dim-name { font-size: 0.8rem; font-weight: 700; color: var(--sup-border); }
+.prof-review .dim-grade { display: none; }
+.prof-review .dim-note { font-size: 0.88rem; color: var(--fg); }
+/* 2 列 score-grid */
+.dim-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0.6rem 0 1rem;
+}
+@media (max-width: 640px) { .dim-list { grid-template-columns: 1fr; } }
+.overall {
+  background: #fff;
+  border: 2px solid var(--sup-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: center;
+  display: block;
+}
+.overall .o-lbl { display: none; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; }
+.overall .o-grade { font-weight: 700; }
+.overall .o-sub { font-weight: 400; font-size: 0.88rem; margin-top: 6px; color: var(--muted); border-top: none; }
+
+/* callout —— 原主题无此组件，给中性配色 */
+.callout { padding: 1rem 1.2rem; border-radius: 8px; margin: 1.2rem 0; font-size: 0.95rem; border: 1px solid var(--border); }
+.callout .c-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.2rem; }
+.callout.info { background: #eff6ff; border-color: #bfdbfe; }
+.callout.warn { background: #fffbeb; border-color: #fde68a; }
+.callout.tip { background: #f0fdf4; border-color: #bbf7d0; }
+
+/* takeaway —— 复用 insight 样式 */
+.takeaway { background: var(--accent-light); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; padding: 1.2rem 1.5rem; margin: 1.2rem 0; }
+.takeaway .h { display: none; }
+.takeaway .t { font-size: 1.05rem; font-weight: 500; }
+
+/* 页脚 */
+footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--muted); }
+
+/* 代码 / 链接 */
+code { background: var(--code-bg); padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+a { color: var(--accent); }
+ul, ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+li { margin-bottom: 0.4rem; }
