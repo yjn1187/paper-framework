@@ -49,9 +49,15 @@ select{appearance:auto}
 /* 论文库 */
 .lib-item{display:flex;align-items:center;gap:.8rem;padding:.8rem .9rem;border:1px solid var(--line);border-radius:10px;margin-bottom:.6rem;background:var(--surface);cursor:pointer}
 .lib-item:hover{border-color:var(--accent)}
-.lib-item .t{flex:1;min-width:0;font-size:.92rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-item .t{flex:1 1 auto;min-width:6rem;font-size:.92rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lib-item .m{font-size:.76rem;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lib-actions{display:flex;gap:.35rem;flex-shrink:0}
+@media(max-width:760px){
+  .lib-item{flex-wrap:wrap;align-items:flex-start}
+  .lib-item .t{flex:1 1 100%;min-width:0;white-space:normal;line-height:1.4}
+  .lib-item .m{flex:1 1 100%;white-space:normal;line-height:1.5}
+  .lib-actions{flex-wrap:wrap}
+}
 .badge{font-size:.68rem;padding:.12rem .4rem;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-weight:700}
 .badge.theme-simona{background:#ede9fe;color:#7c3aed}
 .badge.b-out{background:#e7f2ec;color:var(--green)}

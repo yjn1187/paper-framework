@@ -191,6 +191,34 @@ python3 scripts/render.py ai-scientist --theme simona      # 原版 simona 主�
 > 注意：`codex` 的沙箱网络可能无法解析 arXiv 域名（`Could not resolve host`），框架会如实记录到日志；
 > 此时可换成 opencode 生成，或等 codex 走浏览器工具。桌面端 codex 不受影响（它用另一份配置）。
 
+## Git 约定（示例论文随库携带，个人论文不入库）
+
+- **示例论文**（`2507-01599v1`、`ai-scientist`、`mamba`、`wanghuang` 及其 `__detailed` 版，共 8 个 JSON）
+  随代码库一起提交，clone 下来即可直接渲染阅读。
+- **你以后新生成的论文**：`content/*.json` 中**除示例外的一律不进 git**。
+  这是通过 `.gitignore` 实现的——默认忽略 `content/*.json`，仅用 `!` 反向保留几个示例文件。
+
+```gitignore
+# .gitignore（节选）
+content/*.json            # 忽略所有论文解读 JSON
+!content/mamba.json       # 反向保留示例……
+!content/mamba__detailed.json
+# ……其余示例同理
+```
+
+效果：
+```bash
+git status                # 你新增论文后，这里干净，不会看到 content/新增的 json
+git add -A                # 也不会把新论文加进 git
+```
+
+**如果你想把某篇新论文也入库**（例如作为新的示例分享），两种方式：
+1. 在 `.gitignore` 的 `content/*.json` 之后补一行 `!content/你论文的id.json`（以及 `__detailed`）。
+2. 或先 `git add -f content/你论文的id.json` 强制加入（推荐用方式 1，更持久）。
+
+> 注：`content/papers.json`（serve.py 生成的索引）已取消跟踪，属生成物；任何人 clone 后运行
+> `python3 scripts/serve.py --build-only` 或启动 webapp 即会自动重建。
+
 ---
 
 由 opencode 协助搭建。核心思想：**AI 决定信息类型，CSS 决定视觉，证据让解读可信。**

@@ -249,17 +249,24 @@ def resolve_asset(src: str, out_dir: Path, inline: bool) -> str:
 
 
 def _wrap_tex(tex: str) -> str:
-    """确保公式文本带了 KaTeX 分隔符。已含 \$...\$ 或 \$\$...\$\$ 则原样返回，
-    否则包成 display 模式 \$\$...\$\$。"""
-    tex = tex.strip()
+    """确保公式文本带了 KaTeX 分隔符，并做 HTML 转义以免 < 等被当作标签。
+
+    - 已含 \$...\$ 或 \$\$...\$\$ 则保留分隔符；
+    - 否则包成 display 模式 \$\$...\$\$；
+    - 最后转义 < > &，因为 KaTeX 从 DOM textContent 读取，会还原为原文。
+    """
+    import html as _html
+    tex = (tex or "").strip()
     if not tex:
-        return ""
-    # 已含 display 或 inline 分隔符
+        # 空但保留分隔符以便用户后续填
+        return "$$$$"
     if tex.startswith("$$") and tex.endswith("$$"):
-        return tex
-    if tex.count("$") >= 2 and "$" in tex:
-        return tex
-    return f"$${tex}$$"
+        pass
+    elif "$" in tex:
+        pass
+    else:
+        tex = f"$${tex}$$"
+    return _html.escape(tex, quote=False)
 
 
 def render_blocks(blocks: list, out_dir: Path, inline: bool) -> str:
@@ -378,7 +385,11 @@ def render_blocks(blocks: list, out_dir: Path, inline: bool) -> str:
                 f'<div class="t">{md(b.get("text",""))}</div></div>'
             )
         else:
-            html_parts.append(paras(str(b.get("text", json.dumps(b)))))
+            # 未知/畸形块：不要泄露原始 JSON 给读者。有 text 就按段落渲染，否则跳过。
+            text = b.get("text") if isinstance(b, dict) else None
+            if isinstance(text, str) and text.strip():
+                html_parts.append(paras(text))
+            # 否则静默跳过（可在控制台提示）
     return "\n\n".join(html_parts)
 
 

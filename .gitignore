@@ -1,8 +1,24 @@
-# ---- 源码与解读数据（提交）----
-# content/*.json 与 prompts/ scripts/ template/ web/ 均提交
+# ============================================================
+# paper-framework .gitignore
+# 约定：源码 + 自带示例论文随代码库提交；
+#       你以后新增的论文解读(JSON) 与生成物，一律不进 git。
+# ============================================================
 
 # ---- 生成物（忽略，可重新生成）----
 papers/
+
+# ---- 你后续新增的论文解读 JSON（忽略，不进代码库）----
+# 只保留下方用 "!" 反选、随库自带的示例论文
+# papers.json 为 serve.py 生成的索引（生成物），一并忽略，避免随新增论文产生 diff
+content/*.json
+!content/2507-01599v1.json
+!content/2507-01599v1__detailed.json
+!content/ai-scientist.json
+!content/ai-scientist__detailed.json
+!content/mamba.json
+!content/mamba__detailed.json
+!content/wanghuang.json
+!content/wanghuang__detailed.json
 
 # ---- 上传/提取的原始素材（大文件，忽略）----
 content/uploads/

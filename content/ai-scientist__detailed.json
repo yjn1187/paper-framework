@@ -139,9 +139,7 @@
         "**联网找引文**：允许 20 轮 Semantic Scholar 检索最相关文献，并把 bibtex 自动追加进 LaTeX 保证正确。",
         "**打磨**：逐节 self-reflection 去冗、理顺论证。",
         "**编译**：把 LaTeX 编译报错再喂回 Aider 自动修正。"
-      ]
-    },
-    {
+      ],
       "evidence": "Section 3.3 · Page 4"
     },
     {
@@ -246,9 +244,7 @@
         "**Language Modeling**（Section 6.2）：字符级 transformer（基于 NanoGPT），Shakespeare / enwik8 / text8；基线 = 模板三种子；度量 = 验证困惑度。",
         "**Grokking / Learning Dynamics**（Section 6.3）：模算术合成任务（Power et al. 2022），三种种子；度量 = 达到完美验证准确率所需的更新步数；更适合做开放式实证观察。",
         "**四个基础模型**：Claude Sonnet 3.5、GPT-4o、DeepSeek Coder、Llama-3.1 405b。"
-      ]
-    },
-    {
+      ],
       "evidence": "Section 6.1–6.3 · Page 7–8"
     },
     {
