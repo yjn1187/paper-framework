@@ -1,32 +1,47 @@
-# paper-framework —— 论文解读框架
+# paper-framework
 
-一个轻量、美观、可离线、证据可追溯的论文解读工具。基于 `paper-to-html` 的思想：
-**AI 只判断信息类型，固定 CSS 决定视觉**。
+把论文 PDF 或 arXiv 链接，变成清晰、可切换主题、可追溯原文的阅读网页。
 
-> 📘 **进阶阅读**：想深入了解 opencode / codex 的具体命令、提示词结构与事件流解析，见
-> [`AGENTS-usage.md`](AGENTS-usage.md)。
+## 两种网页效果
 
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/images/paper-ink.png" alt="ink 主题论文页">
+      <br><sub><b>ink</b> · 克制的衬线阅读版式</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/images/paper-simona.png" alt="simona 主题论文页">
+      <br><sub><b>simona</b> · 更醒目的信息卡片与强调色</sub>
+    </td>
+  </tr>
+</table>
+
+同一篇解读可在网页右上角即时切换主题与「原版 / 详细」版本，不需要重新生成。
+
+## 工作台操作
+
+![论文解读工作台](docs/images/workbench.png)
+
+粘贴 arXiv 链接或上传 PDF，选择解读版本、主题和 Agent，点击生成；完成后可直接编辑内容、重新渲染并预览。
+
+## 快速开始（Web 版 · 推荐）
+
+```powershell
+cd paper-framework
+python scripts/webapp.py --open
 ```
-论文 PDF / arXiv
-      │  原版 / 详细 提示词
-      ▼
-  LLM (opencode / codex / 手动)
-      ▼
-  content.json  →  render.py  →  index.html  →  双击即读
-```
 
-## 特性
+浏览器会打开 `http://127.0.0.1:8000`。整个生成、编辑、预览和论文库管理流程都可以在工作台内完成。
 
-- **两套提示词**：`prompts/original.md`（快速理解，7 段）与 `prompts/detailed.md`（科研级，15 节 + 证据可追溯）。
-- **三种内容来源**：调用 `opencode`、`codex`、或手动写 JSON。
-- **多主题 + 页内切换**：`ink`（默认，衬线/砖红/760px）与 `simona`（复刻 blog.simona.plus 原主题）。论文页右上角浮动栏可一键切换主题，`ink`/`simona` 即时生效（无需重新渲染），并记住选择。
-- **多版本 + 页内切换**：同一篇论文可有「原版/详细」两个解读版本（`content/<id>.json` 与 `<id>__detailed.json`），右上角切换，无 id 冲突。工具栏可**收起隐藏**。
-- **来源可追溯**：`content.json` 记录 `source`（原文网页链接）与 `source_pdf`（本地原始 PDF），论文页可点「原文 ↩ / PDF ↩」打开，避免多版本 id 冲突。
-- **语义化组件**：Concept / Insight / Verdict / Figure / Formula / Architecture / Table / Review(博导审稿) / Callout / Takeaway。
-- **自包含单文件**：渲染产物 `papers/<id>/index.html` 可脱离环境双击打开（公式用 KaTeX CDN；`--inline-assets` 可全内联）。
-- **本地论文库**：Web 工作台内建 `/library`（启动即刷新，搜索 + 标签筛选），也可用 `serve.py` 单独起静态版。
-- **Agent 实时日志**：opencode / codex 均以事件流展示思考（🧠）、命令（`$ ... ↳ 输出尾部`）、错误（⚠）、写盘（✎）、每轮 token 用量。
-- **占位检测**：若 Agent 只产出模板骨架（空 blocks / 占位标题），会识别为 stub 并在日志提示补全。
+## 主要能力
+
+- 两套提示词：`original` 用于快速理解，`detailed` 提供 15 节科研级解读与原文证据。
+- 两套主题：`ink` 与 `simona` 可在论文页内即时切换，并记住选择。
+- 两个版本：同一篇论文的「原版 / 详细」解读共用一个入口，互不覆盖。
+- 来源追溯：保留原文链接与本地 PDF 入口，关键判断可附 `evidence`。
+- 浏览器工作台：生成、实时日志、JSON 编辑、渲染、预览和论文库集中在一个页面。
+- 单文件输出：生成的 `papers/<id>/index.html` 可直接双击阅读；图片还可全量内联。
 
 ## 目录
 
@@ -57,25 +72,6 @@ paper-framework/
 ├── papers/<id>/      # 渲染产物（含版本间切换）
 └── index.html        # 论文库首页（启动 webapp 或 serve.py 时生成）
 ```
-
-## 快速开始（Web 版 · 推荐）
-
-**全程在浏览器操作，无需碰命令行。**
-
-```bash
-cd paper-framework
-python3 scripts/webapp.py --open     # 自动打开 http://127.0.0.1:8000
-```
-
-在页面里：
-1. 粘贴 arXiv 链接（或拖拽 PDF 上传）；
-2. 选提示词版本（原版/详细）、主题（ink/simona）、Agent（opencode/codex）；
-3. 点「开始生成解读」，看实时日志（🧠 思考 / `$ 命令` / ⚠ 出错 / ✎ 写盘）；
-4. 完成后自动进入「编辑器」，可改 `content.json` 并「保存并渲染」，右侧即时预览；
-5. 顶部「论文库」标签或「🗂 打开库页」→ `http://127.0.0.1:8000/library` 查看全部论文（搜索 + 筛选）。
-
-> 论文库已内建在 Web 工作台：启动时自动刷新 `content/papers.json`，`/library` 即静态论文库页，无需另开服务器。
-> 想单独跑静态版：`python3 scripts/serve.py --open`（默认端口 8020，避免与 8000 冲突）。
 
 ## 快速开始（CLI 版）
 
