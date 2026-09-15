@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="plate" x1="120" y1="100" x2="884" y2="924" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fffdf9"/>
+      <stop offset="1" stop-color="#f3e8e1"/>
+    </linearGradient>
+    <filter id="plateShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#3b2b23" flood-opacity=".2"/>
+    </filter>
+    <filter id="markShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#3b2b23" flood-opacity=".16"/>
+    </filter>
+  </defs>
+  <rect x="74" y="58" width="876" height="876" rx="210" fill="url(#plate)" filter="url(#plateShadow)"/>
+  <g filter="url(#markShadow)" transform="translate(184 164) scale(.64)">
+    <path d="M240 88h376l184 184v632c0 39.8-32.2 72-72 72H240c-39.8 0-72-32.2-72-72V160c0-39.8 32.2-72 72-72Z" fill="#fff" stroke="#1c1b1a" stroke-width="54" stroke-linejoin="round"/>
+    <path d="M616 88v136c0 26.5 21.5 48 48 48h136" fill="#b33a1e" stroke="#1c1b1a" stroke-width="54" stroke-linejoin="round"/>
+    <path d="M292 386h312M292 474h240M292 562h168" fill="none" stroke="#1c1b1a" stroke-width="42" stroke-linecap="round"/>
+    <path d="M292 684h76v76h-76zM414 684h230M292 808h76v76h-76zM414 808h310" fill="none" stroke="#b33a1e" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

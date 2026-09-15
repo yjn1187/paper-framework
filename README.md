@@ -1,6 +1,10 @@
-# paper-framework
+<p align="center">
+  <img src="docs/assets/paper-framework-icon-v1-app-store.png" width="144" alt="paper-framework 图标">
+</p>
 
-把论文 PDF 或 arXiv 链接，变成清晰、可切换主题、可追溯原文的阅读网页。
+<h1 align="center">paper-framework</h1>
+
+<p align="center">把论文 PDF 或 arXiv 链接，变成清晰、可切换主题、可追溯原文的阅读网页。</p>
 
 ## 两种网页效果
 
